@@ -104,6 +104,9 @@
                                 <th>Condition</th>
                                 <th>Risk Level</th>
                                 <th>Advice</th>
+                                <th>Time</th>
+                                <th>Action</th>
+
                             </tr>
                         </thead>
                         <tbody>
@@ -124,6 +127,9 @@
                                     {% endif %}
                                 </td>
                                 <td>{{ item.advice }}</td>
+                                <td>{{ item.time }}</td>
+                                <td>
+                                    <a href="/delete/{{ item.id }}" class="btn btn-danger btn-sm">Delete</a>
                             </tr>
                             {% endfor %}
                         </tbody>

@@ -1,4 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session
+from datetime import datetime
+
 import sqlite3
 
 app = Flask(__name__)
@@ -16,9 +18,10 @@ def init_db():
         symptoms TEXT,
         condition TEXT,
         risk TEXT,
-        advice TEXT
-    )
-    """)
+        advice TEXT,
+        created_at TEXT 
+    ) 
+    """)# created_at column added for timestamp
 
     conn.commit()
     conn.close()
@@ -85,45 +88,25 @@ def dashboard():
 @app.route("/predict", methods=["GET", "POST"])
 def predict():
 
-    if "user" not in session:
-        return redirect(url_for("login"))
 
+    if "chat" not in session:
+        session["chat"] = []
     if request.method == "POST":
-        symptoms = request.form.get("symptoms")
+        message = request.form.get("message")
 
-        print("User said:", symptoms)
+        session["chat"].append({
+            "role": "user",
+            "text": message
+        })
 
-        if symptoms:
-            condition = "Flu 🤒"
-            risk = "Medium"
-            advice = "Take rest and drink plenty of fluids."
-        else:
-            condition = "Unknown"
-            risk = "-"
-            advice = "Please describe your symptoms."
+        reply = "We are analyzing your symptoms 🧠"
 
-        # Database connection (save the prediction to database)
-        conn = sqlite3.connect("health.db")
-        cursor = conn.cursor()
+        session["chat"].append({
+            "role": "ai",
+            "text": reply
+        })
 
-        cursor.execute(
-            "INSERT INTO history (user, symptoms, condition, risk, advice) VALUES (?, ?, ?, ?, ?)",
-            (session["user"], symptoms, condition, risk, advice)
-        )
-
-        conn.commit()
-        conn.close()
-
-        return render_template(
-            "predict.html",
-            condition=condition,
-            risk=risk,
-            advice=advice
-        )
-
-
-    # GET request
-    return render_template("predict.html")
+    return render_template("predict.html", chat=session["chat"])
 
 #History page
 @app.route("/history")
@@ -135,7 +118,7 @@ def history():
     conn = sqlite3.connect("health.db")
     cursor = conn.cursor()
 
-    cursor.execute("SELECT symptoms, condition, risk, advice FROM history WHERE user = ?", (session["user"],))
+    cursor.execute("SELECT id, symptoms, condition, risk, advice, created_at FROM history WHERE user = ?", (session["user"],))
     rows = cursor.fetchall()
 
     conn.close()
@@ -143,15 +126,33 @@ def history():
     history_data = []
     for row in rows:
         history_data.append({
-            "symptoms": row[0],
-            "condition": row[1],
-            "risk": row[2],
-            "advice": row[3]
+            "id" : row[0],
+            "symptoms": row[1],
+            "condition": row[2],
+            "risk": row[3],
+            "advice": row[4],
+            "time": row[5]
+
         })
 
     return render_template("history.html", history=history_data)
 
 
+@app.route("/delete/<int:id>")
+def delete(id):
+
+    if "user" not in session:
+        return redirect(url_for("login"))
+
+    conn = sqlite3.connect("health.db")
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM history WHERE id = ? AND user = ?", (id, session["user"]))
+
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for("history"))
 
 
 if __name__ == "__main__":
