@@ -94,17 +94,19 @@ def predict():
     if request.method == "POST":
         message = request.form.get("message")
 
-        session["chat"].append({
-            "role": "user",
-            "text": message
-        })
+        if message and message.strip(): # check if message is not empty
 
-        reply = "We are analyzing your symptoms 🧠"
+            session["chat"].append({
+                "role": "user",
+                "text": message
+            })
 
-        session["chat"].append({
-            "role": "ai",
-            "text": reply
-        })
+            reply = "We are analyzing your symptoms 🧠"
+
+            session["chat"].append({
+                "role": "ai",
+                "text": reply
+            })
 
     return render_template("predict.html", chat=session["chat"])
 
