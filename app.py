@@ -1,4 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session
+import requests
+from google import genai
 from datetime import datetime
 
 import sqlite3
@@ -85,23 +87,38 @@ def dashboard():
     return render_template("dashboard.html", data=health_data, activities=recent_activities)
 
 
+# ===== AI FUNCTION (ROUTE KE BAHAR) =====
+def ask_ai(message):
+
+    client = genai.Client(api_key="API KEY")
+
+    response = client.models.generate_content(
+        model="gemini-3-flash-preview",
+        contents=f"You are a medical assistant. Answer briefly.\nUser: {message}",
+    )
+
+    return response.text
+
+
+
+# ===== ROUTE =====
 @app.route("/predict", methods=["GET", "POST"])
 def predict():
 
-
     if "chat" not in session:
         session["chat"] = []
+
     if request.method == "POST":
         message = request.form.get("message")
 
-        if message and message.strip(): # check if message is not empty
+        if message and message.strip():
 
             session["chat"].append({
                 "role": "user",
                 "text": message
             })
 
-            reply = "We are analyzing your symptoms 🧠"
+            reply = ask_ai(message)
 
             session["chat"].append({
                 "role": "ai",
@@ -109,6 +126,7 @@ def predict():
             })
 
     return render_template("predict.html", chat=session["chat"])
+
 
 #History page
 @app.route("/history")
