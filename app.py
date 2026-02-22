@@ -10,23 +10,23 @@ app.secret_key = "supersecretkey"   # session ke liye mandatory
 
 #Database connection
 def init_db():
-    conn = sqlite3.connect("health.db")
-    cursor = conn.cursor()
+    import sqlite3
 
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS history (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user TEXT,
-        symptoms TEXT,
-        condition TEXT,
-        risk TEXT,
-        advice TEXT,
-        created_at TEXT 
-    ) 
-    """)# created_at column added for timestamp
+conn = sqlite3.connect("health.db")
+cursor = conn.cursor()
 
-    conn.commit()
-    conn.close()
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS chat_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user TEXT,
+    role TEXT,
+    message TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+""")
+
+conn.commit()
+conn.close()
 
 
 @app.route("/")
@@ -90,7 +90,7 @@ def dashboard():
 # ===== AI FUNCTION (ROUTE KE BAHAR) =====
 def ask_ai(message):
 
-    client = genai.Client(api_key="API KEY")
+    client = genai.Client(api_key="AIzaSyBaIXuPmefCTyJEx3YL8Y74gcXgsOLqC2A")
 
     response = client.models.generate_content(
         model="gemini-3-flash-preview",
@@ -102,32 +102,78 @@ def ask_ai(message):
 
 
 # ===== ROUTE =====
+# Ye route define karta hai ki jab /predict URL hit hoga toh ye function chalega
+# methods=["GET", "POST"] ka matlab:
+# GET  -> page open karne ke liye
+# POST -> form submit hone ke liye
+
 @app.route("/predict", methods=["GET", "POST"])
 def predict():
 
+    # Agar session me "chat" exist nahi karta
+    # toh ek empty list bana do
+    # Session temporary storage hota hai jo user ke browser ke liye hota hai
     if "chat" not in session:
         session["chat"] = []
 
+    # Agar request POST method se aayi hai (form submit hua hai)
     if request.method == "POST":
+
+        # Form se message nikaal rahe hain
+        # request.form me HTML form ke data hote hain
         message = request.form.get("message")
 
+        # Check kar rahe hain ki message empty na ho
+        # message.strip() extra spaces remove karta hai
         if message and message.strip():
 
+            # User ka message session chat me add kar rahe hain
+            # Ye frontend me chat history show karne ke kaam aata hai
             session["chat"].append({
                 "role": "user",
                 "text": message
             })
 
+            # AI ko message bhej rahe hain
+            # ask_ai() tumhara custom function hoga jo AI response return karta hai
             reply = ask_ai(message)
 
+            # AI ka reply bhi session me add kar diya
             session["chat"].append({
                 "role": "ai",
                 "text": reply
             })
 
+            # ---------------- DATABASE PART ----------------
+
+            # SQLite database se connect ho rahe hain
+            conn = sqlite3.connect("health.db")
+
+            # Cursor object banate hain query execute karne ke liye
+            cursor = conn.cursor()
+
+            # User ka message database me save kar rahe hain
+            # ? placeholders SQL injection se bachate hain
+            cursor.execute("""
+            INSERT INTO chat_history (user, role, message)
+            VALUES (?, ?, ?)
+            """, (session["user"], "user", message))
+
+            # AI ka reply bhi database me save kar rahe hain
+            cursor.execute("""
+            INSERT INTO chat_history (user, role, message)
+            VALUES (?, ?, ?)
+            """, (session["user"], "ai", reply))
+
+            # Changes database me permanently save karne ke liye
+            conn.commit()
+
+            # Connection close karna important hai memory free karne ke liye
+            conn.close()
+
+    # Finally predict.html render ho raha hai
+    # aur chat history template ko pass kar rahe hain
     return render_template("predict.html", chat=session["chat"])
-
-
 #History page
 @app.route("/history")
 def history():
@@ -138,21 +184,22 @@ def history():
     conn = sqlite3.connect("health.db")
     cursor = conn.cursor()
 
-    cursor.execute("SELECT id, symptoms, condition, risk, advice, created_at FROM history WHERE user = ?", (session["user"],))
+    cursor.execute("""
+    SELECT role, message, created_at
+    FROM chat_history
+    WHERE user = ?
+    ORDER BY created_at ASC
+    """, (session["user"],))
+    
     rows = cursor.fetchall()
-
     conn.close()
 
     history_data = []
     for row in rows:
         history_data.append({
-            "id" : row[0],
-            "symptoms": row[1],
-            "condition": row[2],
-            "risk": row[3],
-            "advice": row[4],
-            "time": row[5]
-
+            "role": row[0],
+            "text": row[1],
+            "time": row[2]
         })
 
     return render_template("history.html", history=history_data)
