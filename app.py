@@ -2,31 +2,47 @@ from flask import Flask, render_template, request, redirect, url_for, session
 import requests
 from google import genai
 from datetime import datetime
-
+from werkzeug.security import generate_password_hash, check_password_hash
+import os
+from dotenv import load_dotenv
+load_dotenv()
+print("SECRET:", os.environ.get("SECRET_KEY"))
 import sqlite3
 
+
+
 app = Flask(__name__)
-app.secret_key = "supersecretkey"   # session ke liye mandatory
+app.secret_key = os.environ.get("SECRET_KEY")
+# 🔒 Security settings for session cookies
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SECURE"] = False   # True karo jab HTTPS ho
 
 #Database connection
 def init_db():
-    import sqlite3
+    conn = sqlite3.connect("health.db")
+    cursor = conn.cursor()
 
-conn = sqlite3.connect("health.db")
-cursor = conn.cursor()
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS chat_history (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user TEXT,
-    role TEXT,
-    message TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-""")
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS chat_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user TEXT,
+        role TEXT,
+        message TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
 
-conn.commit()
-conn.close()
+    conn.commit()
+    conn.close()
 
 
 @app.route("/")
@@ -41,35 +57,52 @@ def about():
 @app.route("/login", methods=["GET", "POST"])
 def login():
 
-    # agar form submit hua
+    # Agar user login form submit karta hai
     if request.method == "POST":
 
+        # Form se data le rahe hain
         email = request.form.get("email")
         password = request.form.get("password")
-        print(request.form)
 
+        # Database connect
+        conn = sqlite3.connect("health.db")
+        cursor = conn.cursor()
 
-         # fake validation
-        if  email == "admin@gmail.com" and password == "123":
-            session["user"] = email   # 🧠 NOTE LIKH DIYA
+        # Email ke basis pe user fetch kar rahe hain
+        cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+        user = cursor.fetchone()
+
+        # Connection close kar diya
+        conn.close()
+
+        # Agar user exist karta hai AND password match karta hai
+        # check_password_hash compare karta hai plain password ko hashed password se
+        if user and check_password_hash(user[2], password):
+
+            # 🔥 YAHI SESSION SET HOTI HAI
+            # Ab server ko yaad rahega kaunsa user login hai
+            session["user_email"] = user[1]
+            print("USER:", user)
+            print("PASSWORD MATCH:", check_password_hash(user[2], password) if user else "NO USER")
+            # Login successful → dashboard pe bhej do
             return redirect(url_for("dashboard"))
+
         else:
+            # Agar credentials galat hain
             return render_template("login.html", error="Invalid credentials")
 
-        return redirect(url_for("dashboard"))
-
-    # agar sirf page open hua
+    # Agar GET request hai
     return render_template("login.html")
+
+
 
 @app.route("/dashboard")
 def dashboard():
 
-    # 🧠 ENTRY CHECK
-    if "user" not in session:
+    # Correct session check
+    if "user_email" not in session:
         return redirect(url_for("login"))
 
-    # TODO: Fetch real data from database
-    # For now, using mock data
     health_data = {
         "heart_rate": 72,
         "blood_pressure": "120/80",
@@ -84,13 +117,16 @@ def dashboard():
         {"activity": "Walking", "time": "08:00 PM", "duration": "20 mins"}
     ]
 
-    return render_template("dashboard.html", data=health_data, activities=recent_activities)
-
+    return render_template(
+        "dashboard.html",
+        data=health_data,
+        activities=recent_activities
+    )
 
 # ===== AI FUNCTION (ROUTE KE BAHAR) =====
 def ask_ai(message):
 
-    client = genai.Client(api_key="AIzaSyBaIXuPmefCTyJEx3YL8Y74gcXgsOLqC2A")
+    client = genai.Client(api_key="API KEY")
 
     response = client.models.generate_content(
         model="gemini-3-flash-preview",
@@ -174,11 +210,12 @@ def predict():
     # Finally predict.html render ho raha hai
     # aur chat history template ko pass kar rahe hain
     return render_template("predict.html", chat=session["chat"])
+
 #History page
 @app.route("/history")
 def history():
 
-    if "user" not in session:
+    if "user_email" not in session:
         return redirect(url_for("login"))
 
     conn = sqlite3.connect("health.db")
@@ -189,7 +226,7 @@ def history():
     FROM chat_history
     WHERE user = ?
     ORDER BY created_at ASC
-    """, (session["user"],))
+    """, (session["user_email"],))
     
     rows = cursor.fetchall()
     conn.close()
@@ -204,6 +241,35 @@ def history():
 
     return render_template("history.html", history=history_data)
 
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        if not email or not password:
+            return render_template("register.html", error="Email and password are required")
+
+        conn = sqlite3.connect("health.db")
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+        existing_user = cursor.fetchone()
+
+        if existing_user:
+            return render_template("register.html", error="User with this email already exists")
+
+        hashed_password = generate_password_hash(password)
+
+        cursor.execute("INSERT INTO users (email, password) VALUES (?, ?)", (email, hashed_password))
+        conn.commit()
+        conn.close()
+
+        return redirect(url_for("login"))
+
+    return render_template("register.html")
 
 @app.route("/delete/<int:id>")
 def delete(id):
@@ -220,6 +286,18 @@ def delete(id):
     conn.close()
 
     return redirect(url_for("history"))
+
+
+
+@app.route("/logout")
+def logout():
+
+    # Session se user remove kar rahe hain
+    # None isliye taaki error na aaye agar key missing ho
+    session.pop("user_email", None)
+
+    # Logout ke baad login page
+    return redirect(url_for("login"))
 
 
 if __name__ == "__main__":
