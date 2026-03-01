@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 import requests
 from google import genai
 from datetime import datetime
@@ -22,6 +22,7 @@ def init_db():
     conn = sqlite3.connect("health.db")
     cursor = conn.cursor()
 
+    # Users table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,6 +32,7 @@ def init_db():
     )
     """)
 
+    # Chat history table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS chat_history (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,9 +43,37 @@ def init_db():
     )
     """)
 
+    # Health Metrics table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS health_metrics (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_email TEXT,
+        steps INTEGER,
+        heart_rate INTEGER,
+        sleep_hours REAL,
+        weight REAL,
+        blood_pressure TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    # ── Safe migrations: add columns that may be missing from older DB ──────
+    # ALTER TABLE ignores the column if it already exists (via try/except)
+    migrations = [
+        "ALTER TABLE health_metrics ADD COLUMN sleep_hours REAL",
+        "ALTER TABLE health_metrics ADD COLUMN weight REAL",
+        "ALTER TABLE health_metrics ADD COLUMN blood_pressure TEXT",
+        "ALTER TABLE health_metrics ADD COLUMN heart_rate INTEGER",
+        "ALTER TABLE health_metrics ADD COLUMN steps INTEGER",
+    ]
+    for migration in migrations:
+        try:
+            cursor.execute(migration)
+        except sqlite3.OperationalError:
+            pass  # Column already exists — skip silently
+
     conn.commit()
     conn.close()
-
 
 @app.route("/")
 def home():
@@ -82,8 +112,8 @@ def login():
             # 🔥 YAHI SESSION SET HOTI HAI
             # Ab server ko yaad rahega kaunsa user login hai
             session["user_email"] = user[1]
-            print("USER:", user)
-            print("PASSWORD MATCH:", check_password_hash(user[2], password) if user else "NO USER")
+            # print("USER:", user)
+            # print("PASSWORD MATCH:", check_password_hash(user[2], password) if user else "NO USER")
             # Login successful → dashboard pe bhej do
             return redirect(url_for("dashboard"))
 
@@ -96,32 +126,130 @@ def login():
 
 
 
-@app.route("/dashboard")
+@app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
 
-    # Correct session check
     if "user_email" not in session:
         return redirect(url_for("login"))
 
-    health_data = {
-        "heart_rate": 72,
-        "blood_pressure": "120/80",
-        "weight": 70,
-        "steps": 5400,
-        "sleep": "7h 30m"
-    }
+    user_email = session["user_email"]
+    conn = sqlite3.connect("health.db")
+    cursor = conn.cursor()
 
-    recent_activities = [
-        {"activity": "Morning Jog", "time": "07:00 AM", "duration": "30 mins"},
-        {"activity": "Yoga", "time": "06:00 PM", "duration": "45 mins"},
-        {"activity": "Walking", "time": "08:00 PM", "duration": "20 mins"}
-    ]
+    # ── Handle form submission (POST) ──────────────────────────────────────
+    if request.method == "POST":
+        steps         = request.form.get("steps")
+        heart_rate    = request.form.get("heart_rate")
+        sleep_hours   = request.form.get("sleep_hours")
+        weight        = request.form.get("weight")
+        blood_pressure = request.form.get("blood_pressure")
+
+        cursor.execute("""
+            INSERT INTO health_metrics
+            (user_email, steps, heart_rate, sleep_hours, weight, blood_pressure)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (user_email, steps, heart_rate, sleep_hours, weight, blood_pressure))
+
+        conn.commit()
+        conn.close()
+        flash("Health entry added successfully! ✅", "success")
+        return redirect(url_for("dashboard"))
+
+    # ── Fetch last 20 entries for charts (GET) ──────────────────────────────
+    cursor.execute("""
+        SELECT steps, heart_rate, sleep_hours, weight, blood_pressure, created_at
+        FROM health_metrics
+        WHERE user_email = ?
+        ORDER BY created_at ASC
+        LIMIT 20
+    """, (user_email,))
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    # ── Build chart arrays ──────────────────────────────────────────────────
+    if rows:
+        steps_data      = [r[0] for r in rows]
+        heart_rate_data = [r[1] for r in rows]
+        sleep_data      = [r[2] for r in rows]
+        weight_data     = [r[3] for r in rows]
+        # Format timestamp as "Mar 01 14:32"
+        timestamps = []
+        for r in rows:
+            try:
+                dt = datetime.strptime(r[5], "%Y-%m-%d %H:%M:%S")
+                timestamps.append(dt.strftime("%b %d %H:%M"))
+            except Exception:
+                timestamps.append(r[5][-8:-3])
+
+        latest = rows[-1]
+        # Structured dict for metric cards
+        data = {
+            "steps":          latest[0],
+            "heart_rate":     latest[1],
+            "sleep_hours":    latest[2],
+            "weight":         latest[3],
+            "blood_pressure": latest[4],
+        }
+        activities = [
+            {"activity": f"Steps: {r[0]}", "duration": r[5][-8:-3]}
+            for r in rows[-5:][::-1]
+        ]
+    else:
+        steps_data = heart_rate_data = sleep_data = weight_data = []
+        timestamps = []
+        latest = None
+        data = {"steps": "--", "heart_rate": "--",
+                "sleep_hours": "--", "weight": "--", "blood_pressure": "--/--"}
+        activities = []
 
     return render_template(
         "dashboard.html",
-        data=health_data,
-        activities=recent_activities
+        data=data,
+        steps_data=steps_data,
+        heart_rate_data=heart_rate_data,
+        sleep_data=sleep_data,
+        weight_data=weight_data,
+        timestamps=timestamps,
+        activities=activities,
     )
+
+
+# ── JSON endpoint: live chart refresh without page reload ──────────────────
+@app.route("/api/health-data")
+def api_health_data():
+    if "user_email" not in session:
+        return jsonify({"error": "unauthorized"}), 401
+
+    user_email = session["user_email"]
+    conn = sqlite3.connect("health.db")
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT steps, heart_rate, sleep_hours, weight, created_at
+        FROM health_metrics
+        WHERE user_email = ?
+        ORDER BY created_at ASC
+        LIMIT 20
+    """, (user_email,))
+    rows = cursor.fetchall()
+    conn.close()
+
+    timestamps = []
+    for r in rows:
+        try:
+            dt = datetime.strptime(r[4], "%Y-%m-%d %H:%M:%S")
+            timestamps.append(dt.strftime("%b %d %H:%M"))
+        except Exception:
+            timestamps.append(r[4][-8:-3])
+
+    return jsonify({
+        "labels":     timestamps,
+        "steps":      [r[0] for r in rows],
+        "heart_rate": [r[1] for r in rows],
+        "sleep":      [r[2] for r in rows],
+        "weight":     [r[3] for r in rows],
+    })
+    
 
 # ===== AI FUNCTION (ROUTE KE BAHAR) =====
 def ask_ai(message):

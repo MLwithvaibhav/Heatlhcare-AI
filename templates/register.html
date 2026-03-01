@@ -1,97 +1,317 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <title>Register</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register | Health AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        * {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f6f9;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            background: linear-gradient(135deg, #1a1f36 0%, #2d3561 50%, #1a1f36 100%);
+        }
+
+        /* ── Left branding panel (same as login) ── */
+        .brand-panel {
+            width: 45%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 48px;
+            color: white;
+        }
+
+        /* ── Right form panel ── */
+        .form-panel {
+            flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            padding: 32px;
+            background: #f0f4f8;
+            border-radius: 32px 0 0 32px;
         }
 
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            width: 300px;
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
-        }
-
-        h2 {
-            text-align: center;
-        }
-
-        input {
+        .form-card {
             width: 100%;
-            padding: 10px;
-            margin-top: 10px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
+            max-width: 420px;
         }
 
-        button {
+        .health-input {
             width: 100%;
-            padding: 10px;
-            margin-top: 15px;
+            padding: 12px 16px;
+            border: 2px solid #e0e7ff;
+            border-radius: 12px;
+            background: #fff;
+            font-size: 14px;
+            color: #1a1f36;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .health-input:focus {
+            border-color: #4361ee;
+            box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.12);
+        }
+
+        .health-input::placeholder {
+            color: #9ca3af;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 13px;
             border: none;
-            background-color: #007bff;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
             color: white;
-            border-radius: 5px;
+            font-weight: 700;
+            font-size: 15px;
             cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
         }
 
-        button:hover {
-            background-color: #0056b3;
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(67, 97, 238, 0.35);
         }
 
-        .error {
-            color: red;
-            margin-top: 10px;
-            text-align: center;
+        .step-badge {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
         }
 
-        .link {
-            text-align: center;
-            margin-top: 10px;
+        .step-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        /* Password strength bar */
+        .strength-bar {
+            height: 4px;
+            border-radius: 99px;
+            background: #e5e7eb;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .strength-fill {
+            height: 100%;
+            border-radius: 99px;
+            transition: width 0.3s, background 0.3s;
+            width: 0%;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+
+            .brand-panel {
+                width: 100%;
+                padding: 32px 24px 16px;
+            }
+
+            .form-panel {
+                border-radius: 32px 32px 0 0;
+            }
         }
     </style>
 </head>
 
 <body>
 
-<div class="container">
-    <h2>Register</h2>
-
-    <!-- Form POST method se register route pe jayega -->
-    <form method="POST">
-
-        <!-- Email input -->
-        <input type="email" name="email" placeholder="Enter Email" required>
-
-        <!-- Password input -->
-        <input type="password" name="password" placeholder="Enter Password" required>
-
-        <!-- Submit button -->
-        <button type="submit">Register</button>
-
-    </form>
-
-    <!-- Agar Flask se error message aaya ho -->
-    {% if error %}
-        <div class="error">
-            {{ error }}
+    <!-- ── Left: Branding ──────────────────────────────────────────────── -->
+    <div class="brand-panel">
+        <div style="text-align:center; margin-bottom:40px;">
+            <div style="font-size:4rem; margin-bottom:12px;">🏥</div>
+            <h1 style="font-size:2.2rem; font-weight:800; margin:0; letter-spacing:-0.5px;">Health AI</h1>
+            <p style="color:#a5b4fc; margin-top:8px; font-size:15px; line-height:1.6;">
+                Start your journey to<br>better health today
+            </p>
         </div>
-    {% endif %}
 
-    <!-- Login page link -->
-    <div class="link">
-        Already have an account? <a href="{{ url_for('login') }}">Login</a>
+        <!-- Steps -->
+        <div style="width:100%; max-width:300px;">
+            <p style="color:#a5b4fc; font-size:12px; font-weight:700; letter-spacing:1px; margin-bottom:16px;">HOW IT
+                WORKS</p>
+
+            <div class="step-badge">
+                <div class="step-number">1</div>
+                <div>
+                    <div style="font-weight:600; color:#fff; font-size:14px;">Create Your Account</div>
+                    <div style="font-size:12px; color:#a5b4fc;">Quick & free registration</div>
+                </div>
+            </div>
+            <div class="step-badge">
+                <div class="step-number">2</div>
+                <div>
+                    <div style="font-weight:600; color:#fff; font-size:14px;">Log Your Health Data</div>
+                    <div style="font-size:12px; color:#a5b4fc;">Track vitals daily from dashboard</div>
+                </div>
+            </div>
+            <div class="step-badge">
+                <div class="step-number">3</div>
+                <div>
+                    <div style="font-weight:600; color:#fff; font-size:14px;">Chat with AI Doctor</div>
+                    <div style="font-size:12px; color:#a5b4fc;">Get instant symptom analysis</div>
+                </div>
+            </div>
+            <div class="step-badge">
+                <div class="step-number">4</div>
+                <div>
+                    <div style="font-weight:600; color:#fff; font-size:14px;">View Health Trends</div>
+                    <div style="font-size:12px; color:#a5b4fc;">Live charts for all your metrics</div>
+                </div>
+            </div>
+        </div>
     </div>
 
-</div>
+    <!-- ── Right: Register Form ───────────────────────────────────────── -->
+    <div class="form-panel">
+        <div class="form-card">
+
+            <!-- Header -->
+            <div style="margin-bottom:28px;">
+                <h2 style="font-size:1.8rem; font-weight:800; color:#1a1f36; margin:0;">Create Account ✨</h2>
+                <p style="color:#6b7280; margin-top:6px; font-size:14px;">Join Health AI — it only takes 30 seconds</p>
+            </div>
+
+            <!-- Error alert -->
+            {% if error %}
+            <div
+                style="background:#fef2f2; border:1px solid #fca5a5; border-radius:12px; padding:12px 16px; margin-bottom:20px; color:#dc2626; font-size:14px;">
+                ⚠️ {{ error }}
+            </div>
+            {% endif %}
+
+            <!-- Form -->
+            <form method="POST" action="/register" id="registerForm">
+
+                <div style="margin-bottom:18px;">
+                    <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:6px;">
+                        📧 Email Address
+                    </label>
+                    <input type="email" name="email" placeholder="you@example.com" class="health-input" required>
+                </div>
+
+                <div style="margin-bottom:8px;">
+                    <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:6px;">
+                        🔑 Password
+                    </label>
+                    <input type="password" name="password" id="passwordInput" placeholder="Choose a strong password"
+                        class="health-input" required>
+                    <!-- Password strength indicator -->
+                    <div class="strength-bar">
+                        <div class="strength-fill" id="strengthFill"></div>
+                    </div>
+                    <small id="strengthLabel" style="font-size:11px; color:#9ca3af; display:block; margin-top:4px;">
+                        Enter a password to see strength
+                    </small>
+                </div>
+
+                <div style="margin-bottom:24px;">
+                    <label style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:6px;">
+                        🔒 Confirm Password
+                    </label>
+                    <input type="password" name="confirm_password" id="confirmInput" placeholder="Repeat your password"
+                        class="health-input" required>
+                    <small id="matchLabel" style="font-size:11px; display:block; margin-top:4px; color:#9ca3af;">
+                        Re-enter password to confirm
+                    </small>
+                </div>
+
+                <!-- Terms notice -->
+                <div
+                    style="background:#eff6ff; border-radius:10px; padding:10px 14px; margin-bottom:20px; font-size:12px; color:#4361ee; display:flex; gap:8px; align-items:flex-start;">
+                    <span>ℹ️</span>
+                    <span>By registering, your data is stored securely and never shared with third parties.</span>
+                </div>
+
+                <button type="submit" class="submit-btn">Create My Account →</button>
+
+            </form>
+
+            <!-- Divider -->
+            <div style="text-align:center; margin:20px 0; color:#9ca3af; font-size:13px;">── or ──</div>
+
+            <!-- Login link -->
+            <div style="text-align:center; font-size:14px; color:#6b7280;">
+                Already have an account?
+                <a href="/login" style="color:#4361ee; font-weight:700; text-decoration:none; margin-left:4px;">
+                    Sign in →
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // ── Password strength meter ──
+        const passwordInput = document.getElementById("passwordInput");
+        const strengthFill = document.getElementById("strengthFill");
+        const strengthLabel = document.getElementById("strengthLabel");
+        const confirmInput = document.getElementById("confirmInput");
+        const matchLabel = document.getElementById("matchLabel");
+
+        passwordInput.addEventListener("input", function () {
+            const val = this.value;
+            let score = 0;
+            if (val.length >= 8) score++;
+            if (/[A-Z]/.test(val)) score++;
+            if (/[0-9]/.test(val)) score++;
+            if (/[^A-Za-z0-9]/.test(val)) score++;
+
+            const configs = [
+                { w: "0%", color: "#e5e7eb", label: "Enter a password" },
+                { w: "25%", color: "#f87171", label: "Weak" },
+                { w: "50%", color: "#fb923c", label: "Fair" },
+                { w: "75%", color: "#facc15", label: "Good" },
+                { w: "100%", color: "#4ade80", label: "Strong 💪" },
+            ];
+            const cfg = configs[score];
+            strengthFill.style.width = cfg.w;
+            strengthFill.style.background = cfg.color;
+            strengthLabel.textContent = cfg.label;
+            strengthLabel.style.color = cfg.color === "#e5e7eb" ? "#9ca3af" : cfg.color;
+        });
+
+        // ── Confirm password match ──
+        confirmInput.addEventListener("input", function () {
+            if (this.value === passwordInput.value) {
+                matchLabel.textContent = "✅ Passwords match";
+                matchLabel.style.color = "#4ade80";
+            } else {
+                matchLabel.textContent = "❌ Passwords don't match";
+                matchLabel.style.color = "#f87171";
+            }
+        });
+    </script>
 
 </body>
+
 </html>

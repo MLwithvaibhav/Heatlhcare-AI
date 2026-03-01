@@ -1,56 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My History | Health AI</title>
+    <title>Chat History | Health AI</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Tailwind CSS — same as dashboard -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
         body {
-            background-color: #f8f9fa;
+            background-color: #f0f4f8;
+            font-family: 'Segoe UI', sans-serif;
         }
 
+        /* ── Sidebar — exact copy from dashboard ── */
         .sidebar {
             height: 100vh;
             position: fixed;
             top: 0;
             left: 0;
             width: 250px;
-            background-color: #343a40;
+            background: linear-gradient(180deg, #1a1f36, #2d3561);
             padding-top: 20px;
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.2);
         }
 
         .sidebar a {
-            padding: 15px 25px;
+            padding: 14px 25px;
             text-decoration: none;
-            font-size: 18px;
-            color: #d1d1d1;
+            font-size: 15px;
+            color: #b0b8d4;
             display: block;
+            border-radius: 8px;
+            margin: 2px 10px;
+            transition: all 0.2s;
         }
 
         .sidebar a:hover {
-            color: #f1f1f1;
-            background-color: #495057;
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.12);
+            transform: translateX(4px);
         }
 
+        /* Active link highlight */
         .sidebar a.active {
-            background-color: #0d6efd;
-            color: white;
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.18);
+            border-left: 3px solid #7c83fd;
         }
 
+        /* ── Main content area ── */
         .content {
             margin-left: 250px;
-            padding: 30px;
+            padding: 24px;
         }
 
-        .chat-container {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
-            max-height: 75vh;
+        /* ── Chat bubble scroll container ── */
+        .chat-scroll {
+            max-height: 68vh;
             overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #c7d2fe transparent;
+        }
+
+        .chat-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .chat-scroll::-webkit-scrollbar-thumb {
+            background: #c7d2fe;
+            border-radius: 99px;
         }
 
         @media (max-width: 768px) {
@@ -69,71 +90,133 @@
 
 <body>
 
-<!-- Sidebar -->
-<div class="sidebar">
-    <h3 class="text-center text-white mb-4">Health AI 🏥</h3>
-    <a href="/dashboard">🏠 Dashboard</a>
-    <a href="/predict">🩺 Symptom Check</a>
-    <a href="/history" class="active">📁 History</a>
-    <a href="#">👤 Profile</a>
-    <a href="/logout" class="text-danger mt-5">🚪 Logout</a>
-</div>
+    <!-- ── Sidebar ───────────────────────────────────────────────────────── -->
+    <div class="sidebar">
+        <h3 class="text-center text-white mb-4 px-3">Health AI 🏥</h3>
+        <a href="/dashboard">🏠 Dashboard</a>
+        <a href="/predict">🩺 Symptom Check</a>
+        <a href="/history" class="active">📁 History</a>
+        <a href="/profile">👤 Profile</a>
+        <a href="/logout" style="color:#ff6b6b; margin-top:30px;">🚪 Logout</a>
+    </div>
 
-<!-- MAIN CONTENT -->
-<div class="content">
-    <h3 class="mb-4">Chat History 📜</h3>
+    <!-- ── Main Content ──────────────────────────────────────────────────── -->
+    <div class="content">
 
-    <div class="chat-container">
+        <!-- Navbar — same style as dashboard -->
+        <nav class="navbar navbar-light bg-white rounded-3 shadow-sm mb-4 px-4">
+            <span class="navbar-brand mb-0 h1 fw-bold">Chat History 📜</span>
+            <span class="text-muted small">Your AI consultation log</span>
+        </nav>
 
-        {% if not history %}
-            <div class="alert alert-info text-center">
-                No chat history found.
+        <!-- ── History Card ─────────────────────────────────────────────── -->
+        <div class="bg-white rounded-3 shadow-sm overflow-hidden">
+
+            <!-- Card Header — gradient matching dashboard form header -->
+            <div class="d-flex align-items-center gap-3 px-4 py-3"
+                style="background: linear-gradient(to right, #4361ee, #7c83fd);">
+                <span style="font-size: 1.4rem;">💬</span>
+                <div>
+                    <h6 class="text-white fw-bold mb-0">AI Consultation History</h6>
+                    <small class="text-white" style="opacity:0.8;">All your past conversations with Health AI</small>
+                </div>
             </div>
-        {% endif %}
 
-        {% for item in history %}
+            <!-- Chat Bubbles -->
+            <div class="chat-scroll p-4">
 
-        <div class="d-flex w-100 mb-3
-            {% if item.role == 'user' %}
-                justify-content-end
-            {% else %}
-                justify-content-start
-            {% endif %}
-        ">
-
-            <div class="
-                {% if item.role == 'user' %}
-                    bg-primary text-white
-                {% else %}
-                    bg-success text-white
+                {% if not history %}
+                <!-- Empty State -->
+                <div class="text-center py-5">
+                    <div style="font-size: 3.5rem;">🗂️</div>
+                    <h5 class="mt-3 fw-bold text-secondary">No history yet</h5>
+                    <p class="text-muted">Start a conversation on the
+                        <a href="/predict" class="text-decoration-none fw-semibold" style="color:#4361ee;">Symptom
+                            Check</a>
+                        page.
+                    </p>
+                </div>
                 {% endif %}
-                p-3 rounded-4 shadow-sm
-            "
-            style="max-width: 60%; word-break: break-word;">
 
-                <small class="fw-bold d-block mb-1">
+                {% for item in history %}
+
+                <!-- Bubble wrapper: user → right, AI → left -->
+                <div class="d-flex mb-3
                     {% if item.role == 'user' %}
-                        You
+                        justify-content-end
                     {% else %}
-                        Health AI
+                        justify-content-start
+                    {% endif %}
+                ">
+                    <!-- Avatar -->
+                    {% if item.role != 'user' %}
+                    <div class="d-flex align-items-end me-2">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center shadow-sm"
+                            style="width:36px; height:36px; background: linear-gradient(135deg,#4361ee,#7c83fd); font-size:1rem; flex-shrink:0;">
+                            🤖
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Bubble body -->
+                    <div style="max-width:62%; word-break:break-word;">
+                        <small class="fw-semibold d-block mb-1 px-1"
+                            style="color: {% if item.role == 'user' %}#4361ee{% else %}#2ec4b6{% endif %}; font-size: 11px; letter-spacing:0.3px;">
+                            {% if item.role == 'user' %}YOU{% else %}HEALTH AI{% endif %}
+                        </small>
+
+                        <div class="px-3 py-2 shadow-sm" style="
+                                border-radius: {% if item.role == 'user' %}18px 18px 4px 18px{% else %}18px 18px 18px 4px{% endif %};
+                                background: {% if item.role == 'user' %}linear-gradient(135deg, #4361ee, #3a0ca3){% else %}#f1f5ff{% endif %};
+                                color: {% if item.role == 'user' %}#ffffff{% else %}#1a1f36{% endif %};
+                                font-size: 14px; line-height: 1.6;
+                             ">
+                            {{ item.text }}
+                        </div>
+
+                        <small class="d-block mt-1 px-1 text-muted" style="font-size:11px;">
+                            🕐 {{ item.time }}
+                        </small>
+                    </div>
+
+                    <!-- User avatar (right side) -->
+                    {% if item.role == 'user' %}
+                    <div class="d-flex align-items-end ms-2">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center shadow-sm"
+                            style="width:36px; height:36px; background: linear-gradient(135deg,#3a0ca3,#4361ee); font-size:1rem; flex-shrink:0;">
+                            👤
+                        </div>
+                    </div>
+                    {% endif %}
+
+                </div>
+
+                {% endfor %}
+
+            </div><!-- /chat-scroll -->
+
+            <!-- Footer bar -->
+            <div class="px-4 py-3 d-flex justify-content-between align-items-center"
+                style="border-top: 1px solid #e8edf5; background:#f8faff;">
+                <small class="text-muted">
+                    {% if history %}
+                    {{ history | length }} message{{ 's' if history | length != 1 else '' }} in history
+                    {% else %}
+                    No messages yet
                     {% endif %}
                 </small>
-
-                {{ item.text }}
-
-                <small class="d-block mt-2" style="font-size: 12px; opacity: 0.7;">
-                    {{ item.time }}
-                </small>
-
+                <a href="/predict" class="btn btn-sm fw-semibold px-3"
+                    style="background: linear-gradient(135deg,#4361ee,#7c83fd); color:#fff; border-radius:20px; border:none;">
+                    + New Chat
+                </a>
             </div>
 
-        </div>
+        </div><!-- /card -->
 
-        {% endfor %}
+    </div><!-- /content -->
 
-    </div>
-</div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

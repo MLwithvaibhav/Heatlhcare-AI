@@ -1,161 +1,445 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Healthcare Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Tailwind CSS (Health Entry form section) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            corePlugins: {
+                preflight: false
+            }
+        }
+    </script>
+
     <style>
         body {
-            background-color: #f8f9fa;
+            background-color: #f0f4f8;
         }
+
         .sidebar {
             height: 100vh;
             position: fixed;
             top: 0;
             left: 0;
             width: 250px;
-            background-color: #343a40;
+            background: linear-gradient(180deg, #1a1f36, #2d3561);
             padding-top: 20px;
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.2);
         }
+
         .sidebar a {
-            padding: 15px 25px;
+            padding: 14px 25px;
             text-decoration: none;
-            font-size: 18px;
-            color: #d1d1d1;
+            font-size: 15px;
+            color: #b0b8d4;
             display: block;
+            border-radius: 8px;
+            margin: 2px 10px;
+            transition: all 0.2s;
         }
+
         .sidebar a:hover {
-            color: #f1f1f1;
-            background-color: #495057;
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.12);
+            transform: translateX(4px);
         }
+
         .content {
             margin-left: 250px;
-            padding: 20px;
+            padding: 24px;
         }
-        .card {
+
+        .metric-card {
             border: none;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        .card:hover {
+
+        .metric-card:hover {
             transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
         }
+
         .metric-value {
-            font-size: 2rem;
-            font-weight: bold;
+            font-size: 2.2rem;
+            font-weight: 800;
         }
+
+        .chart-card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
         @media (max-width: 768px) {
             .sidebar {
                 width: 100%;
                 height: auto;
                 position: relative;
             }
+
             .content {
                 margin-left: 0;
             }
         }
     </style>
 </head>
+
 <body>
 
     <!-- Sidebar -->
     <div class="sidebar">
-        <h3 class="text-center text-white mb-4">Health AI 🏥</h3>
-        <a href="#">🏠 Dashboard</a>
+        <h3 class="text-center text-white mb-4 px-3">Health AI 🏥</h3>
+        <a href="/dashboard">🏠 Dashboard</a>
         <a href="/predict">🩺 Symptom Check</a>
         <a href="/history">📁 History</a>
-        <a href="#">👤 Profile</a>
-        <a href="/logout" class="text-danger mt-5">🚪 Logout</a>
+        <a href="/profile">👤 Profile</a>
+        <a href="/logout" style="color:#ff6b6b; margin-top:30px;">🚪 Logout</a>
     </div>
 
     <!-- Main Content -->
     <div class="content">
-        <nav class="navbar navbar-light bg-white rounded shadow-sm mb-4 px-4">
-            <span class="navbar-brand mb-0 h1">Hello, {{ session["user"] }} 👋</span>
+
+        <!-- Navbar -->
+        <nav class="navbar navbar-light bg-white rounded-3 shadow-sm mb-4 px-4">
+            <span class="navbar-brand mb-0 h1 fw-bold">
+                Hello, {{ session["user_email"] }} 👋
+            </span>
+            <span class="text-muted small">{{ now if now else "" }}</span>
         </nav>
 
-        <!-- Key Metrics -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card p-3 text-center text-primary">
-                    <h6>Heart Rate ❤️</h6>
-                    <div class="metric-value">{{ data.heart_rate }} <span class="fs-6 text-muted">bpm</span></div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card p-3 text-center text-danger">
-                    <h6>Blood Pressure 🩸</h6>
-                    <div class="metric-value">{{ data.blood_pressure }}</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card p-3 text-center text-success">
-                    <h6>Weight ⚖️</h6>
-                    <div class="metric-value">{{ data.weight }} <span class="fs-6 text-muted">kg</span></div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card p-3 text-center text-info">
-                    <h6>Steps 🚶</h6>
-                    <div class="metric-value">{{ data.steps }}</div>
-                </div>
-            </div>
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show rounded-3 shadow-sm mb-3"
+            role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
 
-        <div class="row">
-            <!-- Chart Section -->
-            <div class="col-md-8">
-                <div class="card p-4 mb-4">
-                    <h4>Activity Trend 📊</h4>
-                    <canvas id="activityChart"></canvas>
+        <!-- ── Key Metric Cards ─────────────────────────────────────────────── -->
+        <div class="row mb-4 g-3">
+
+            <div class="col-md-3 col-6">
+                <div class="card metric-card p-3 text-center" style="border-top: 4px solid #4361ee;">
+                    <h6 class="text-muted small mb-1">Heart Rate ❤️</h6>
+                    <div class="metric-value text-primary">{{ data.heart_rate }}</div>
+                    <small class="text-muted">bpm</small>
                 </div>
             </div>
 
-            <!-- Recent Activity Table -->
-            <div class="col-md-4">
-                <div class="card p-4">
-                    <h4>Recent Activities 🕒</h4>
-                    <ul class="list-group list-group-flush mt-3">
-                        {% for activity in activities %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            {{ activity.activity }}
-                            <span class="badge bg-primary rounded-pill">{{ activity.duration }}</span>
-                        </li>
-                        {% endfor %}
-                    </ul>
+            <div class="col-md-3 col-6">
+                <div class="card metric-card p-3 text-center" style="border-top: 4px solid #f72585;">
+                    <h6 class="text-muted small mb-1">Blood Pressure 🩸</h6>
+                    <div class="metric-value text-danger">{{ data.blood_pressure }}</div>
+                    <small class="text-muted">mmHg</small>
                 </div>
             </div>
+
+            <div class="col-md-3 col-6">
+                <div class="card metric-card p-3 text-center" style="border-top: 4px solid #2ec4b6;">
+                    <h6 class="text-muted small mb-1">Weight ⚖️</h6>
+                    <div class="metric-value text-success">{{ data.weight }}</div>
+                    <small class="text-muted">kg</small>
+                </div>
+            </div>
+
+            <div class="col-md-3 col-6">
+                <div class="card metric-card p-3 text-center" style="border-top: 4px solid #ff9f1c;">
+                    <h6 class="text-muted small mb-1">Steps 🚶</h6>
+                    <div class="metric-value text-warning">{{ data.steps }}</div>
+                    <small class="text-muted">today</small>
+                </div>
+            </div>
+
         </div>
+
+        <!-- ── Charts Row ──────────────────────────────────────────────────── -->
+        <div class="row g-3 mb-4">
+
+            <!-- Steps Chart -->
+            <div class="col-md-6">
+                <div class="card chart-card p-4">
+                    <h6 class="fw-bold mb-3">🚶 Steps Trend</h6>
+                    {% if steps_data %}
+                    <canvas id="stepsChart" height="140"></canvas>
+                    {% else %}
+                    <div class="alert alert-info mt-2">No steps data yet.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Heart Rate Chart -->
+            <div class="col-md-6">
+                <div class="card chart-card p-4">
+                    <h6 class="fw-bold mb-3">❤️ Heart Rate Trend</h6>
+                    {% if heart_rate_data %}
+                    <canvas id="heartChart" height="140"></canvas>
+                    {% else %}
+                    <div class="alert alert-info mt-2">No heart rate data yet.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Sleep Chart -->
+            <div class="col-md-6">
+                <div class="card chart-card p-4">
+                    <h6 class="fw-bold mb-3">😴 Sleep Hours Trend</h6>
+                    {% if sleep_data %}
+                    <canvas id="sleepChart" height="140"></canvas>
+                    {% else %}
+                    <div class="alert alert-info mt-2">No sleep data yet.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Weight Chart -->
+            <div class="col-md-6">
+                <div class="card chart-card p-4">
+                    <h6 class="fw-bold mb-3">⚖️ Weight Trend</h6>
+                    {% if weight_data %}
+                    <canvas id="weightChart" height="140"></canvas>
+                    {% else %}
+                    <div class="alert alert-info mt-2">No weight data yet.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ── Recent Activity ─────────────────────────────────────────────── -->
+        <div class="card chart-card p-4 mb-4">
+            <h6 class="fw-bold mb-3">🕒 Recent Entries</h6>
+            {% if activities %}
+            <ul class="list-group list-group-flush">
+                {% for activity in activities %}
+                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                    <span>{{ activity.activity }}</span>
+                    <span class="badge bg-primary rounded-pill">{{ activity.duration }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="alert alert-info mb-0">No entries yet. Add your first one below!</div>
+            {% endif %}
+        </div>
+
+    </div><!-- /content -->
+
+    <!-- ── Add Health Entry — Tailwind CSS styled ────────────────────────────── -->
+    <div class="mx-auto mb-8 rounded-2xl overflow-hidden shadow-xl"
+        style="margin-left:270px; margin-right:20px; margin-bottom:40px;">
+
+        <!-- Card Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center gap-3">
+            <span class="text-2xl">🏥</span>
+            <div>
+                <h5 class="text-white text-xl font-bold tracking-wide">Add Health Entry</h5>
+                <p class="text-blue-100 text-sm">Log your daily health metrics below</p>
+            </div>
+        </div>
+
+        <!-- Card Body -->
+        <div class="bg-white px-6 py-6">
+            <form method="POST" action="/dashboard">
+
+                <!-- Row 1: Steps | Heart Rate | Sleep -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-sm font-semibold text-gray-600">🚶 Steps</label>
+                        <input type="number" name="steps" placeholder="e.g. 8000" required
+                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-800 placeholder-gray-400 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-sm font-semibold text-gray-600">❤️ Heart Rate</label>
+                        <input type="number" name="heart_rate" placeholder="e.g. 72 bpm" required
+                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-800 placeholder-gray-400 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent transition">
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-sm font-semibold text-gray-600">😴 Sleep (hours)</label>
+                        <input type="number" step="0.1" name="sleep_hours" placeholder="e.g. 7.5" required
+                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-800 placeholder-gray-400 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition">
+                    </div>
+
+                </div>
+
+                <!-- Row 2: Weight | Blood Pressure -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-sm font-semibold text-gray-600">⚖️ Weight (kg)</label>
+                        <input type="number" step="0.1" name="weight" placeholder="e.g. 70.5" required
+                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-800 placeholder-gray-400 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent transition">
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-sm font-semibold text-gray-600">🩸 Blood Pressure</label>
+                        <input type="text" name="blood_pressure" placeholder="e.g. 120/80" required
+                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-800 placeholder-gray-400 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent transition">
+                    </div>
+
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit"
+                    class="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm tracking-wider shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+                    ➕ Add Health Entry
+                </button>
+
+            </form>
+        </div>
+
     </div>
 
+    <!-- ── Bootstrap JS (for alert dismiss) ─────────────────────────────────── -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- ── Chart.js Initialisation ──────────────────────────────────────────── -->
     <script>
-        const ctx = document.getElementById('activityChart').getContext('2d');
-        const activityChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                datasets: [{
-                    label: 'Steps Walked',
-                    data: [3000, 4500, 3200, 5000, 4800, 6000, 5400],
-                    borderColor: '#0d6efd',
-                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
+        // ── Shared data injected from Flask (Jinja2) ──────────────────────────
+        const LABELS = {{ timestamps      | tojson }};
+        const STEPS = {{ steps_data      | tojson }};
+        const HEART_RATE = {{ heart_rate_data | tojson }};
+        const SLEEP = {{ sleep_data      | tojson }};
+        const WEIGHT = {{ weight_data     | tojson }};
+
+        // ── Helper: build a gradient fill ────────────────────────────────────
+        function makeGradient(ctx, color1, color2) {
+            const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+            gradient.addColorStop(0, color1);
+            gradient.addColorStop(1, color2);
+            return gradient;
+        }
+
+        // ── Shared chart defaults ─────────────────────────────────────────────
+        Chart.defaults.font.family = "'Segoe UI', sans-serif";
+        Chart.defaults.font.size = 12;
+
+        const commonOptions = {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false }, ticks: { maxTicksLimit: 6 } },
+                y: { grid: { color: "rgba(0,0,0,0.05)" }, beginAtZero: false }
             },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
+            elements: { line: { tension: 0.4 }, point: { radius: 4, hoverRadius: 7 } }
+        };
+
+        // ── 1. Steps Chart ────────────────────────────────────────────────────
+        if (document.getElementById("stepsChart")) {
+            const ctx1 = document.getElementById("stepsChart").getContext("2d");
+            new Chart(ctx1, {
+                type: "line",
+                data: {
+                    labels: LABELS,
+                    datasets: [{
+                        label: "Steps",
+                        data: STEPS,
+                        borderColor: "#4361ee",
+                        backgroundColor: makeGradient(ctx1, "rgba(67,97,238,0.3)", "rgba(67,97,238,0)"),
+                        fill: true,
+                        pointBackgroundColor: "#4361ee"
+                    }]
+                },
+                options: { ...commonOptions }
+            });
+        }
+
+        // ── 2. Heart Rate Chart ───────────────────────────────────────────────
+        if (document.getElementById("heartChart")) {
+            const ctx2 = document.getElementById("heartChart").getContext("2d");
+            new Chart(ctx2, {
+                type: "line",
+                data: {
+                    labels: LABELS,
+                    datasets: [{
+                        label: "Heart Rate (bpm)",
+                        data: HEART_RATE,
+                        borderColor: "#f72585",
+                        backgroundColor: makeGradient(ctx2, "rgba(247,37,133,0.25)", "rgba(247,37,133,0)"),
+                        fill: true,
+                        pointBackgroundColor: "#f72585"
+                    }]
+                },
+                options: { ...commonOptions }
+            });
+        }
+
+        // ── 3. Sleep Chart ─────────────────────────────────────────────────────
+        if (document.getElementById("sleepChart")) {
+            const ctx3 = document.getElementById("sleepChart").getContext("2d");
+            new Chart(ctx3, {
+                type: "bar",
+                data: {
+                    labels: LABELS,
+                    datasets: [{
+                        label: "Sleep (hrs)",
+                        data: SLEEP,
+                        backgroundColor: makeGradient(ctx3, "rgba(114,9,183,0.7)", "rgba(114,9,183,0.2)"),
+                        borderRadius: 8,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        x: { grid: { display: false }, ticks: { maxTicksLimit: 6 } },
+                        y: { grid: { color: "rgba(0,0,0,0.05)" }, beginAtZero: true, max: 12 }
                     }
                 }
-            }
-        });
+            });
+        }
+
+        // ── 4. Weight Chart ───────────────────────────────────────────────────
+        if (document.getElementById("weightChart")) {
+            const ctx4 = document.getElementById("weightChart").getContext("2d");
+            new Chart(ctx4, {
+                type: "line",
+                data: {
+                    labels: LABELS,
+                    datasets: [{
+                        label: "Weight (kg)",
+                        data: WEIGHT,
+                        borderColor: "#2ec4b6",
+                        backgroundColor: makeGradient(ctx4, "rgba(46,196,182,0.3)", "rgba(46,196,182,0)"),
+                        fill: true,
+                        pointBackgroundColor: "#2ec4b6"
+                    }]
+                },
+                options: { ...commonOptions }
+            });
+        }
+
+        // ── Live Refresh every 30 seconds via /api/health-data ────────────────
+        function refreshCharts() {
+            fetch("/api/health-data")
+                .then(r => r.json())
+                .then(d => {
+                    if (d.error) return;   // not logged in
+                    console.log("Chart data refreshed:", d.labels.length, "points");
+                    // In a more advanced setup: update Chart instances with d.labels, d.steps etc.
+                    // For now, a simple page reload keeps things clean:
+                    // window.location.reload();
+                })
+                .catch(() => { });
+        }
+        setInterval(refreshCharts, 30000);
     </script>
 
 </body>
+
 </html>
