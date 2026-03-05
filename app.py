@@ -14,7 +14,7 @@ import sqlite3
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY")
-init_db()
+
 # 🔒 Security settings for session cookies
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SECURE"] = False   # True karo jab HTTPS ho
@@ -91,7 +91,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-
+init_db()
 # ── Helper: resolve user_id from session email ────────────────────────────────
 def get_user_id(cursor, email):
     """Return the integer user.id for the given email, or None."""
