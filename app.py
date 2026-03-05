@@ -329,13 +329,13 @@ def ask_ai(message):
 
     prompt = (
         "You are a medical assistant. "
-        "At the very beginning of your reply, output exactly one of these "
-        "tags (no other text before it): "
+        "Reply in maximum 5 lines. "
+        "Start your reply with one tag: "
         "[RISK: LOW], [RISK: MODERATE], or [RISK: HIGH]. "
-        "Choose based on the urgency of the symptoms described. "
-        "Then, on the next line, give a brief, clear medical response.\n"
+        "Then give brief advice.\n"
         f"User: {message}"
     )
+
 
     response = client.models.generate_content(
         model="gemini-3-flash-preview",
