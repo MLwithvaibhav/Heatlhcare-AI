@@ -14,6 +14,7 @@ import sqlite3
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY")
+init_db()
 # 🔒 Security settings for session cookies
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SECURE"] = False   # True karo jab HTTPS ho
@@ -612,7 +613,7 @@ def logout():
 
 
 if __name__ == "__main__":
-    init_db()
+    
     app.run( host = '[0.0.0.0]',debug=True)
 
     
