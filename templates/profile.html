@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile | Health AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f0f4f8;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            background: linear-gradient(180deg, #1a1f36, #2d3561);
+            padding-top: 20px;
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .sidebar a {
+            padding: 14px 25px;
+            text-decoration: none;
+            font-size: 15px;
+            color: #b0b8d4;
+            display: block;
+            border-radius: 8px;
+            margin: 2px 10px;
+            transition: all 0.2s;
+        }
+
+        .sidebar a:hover {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.12);
+            transform: translateX(4px);
+        }
+
+        .sidebar a.active {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.18);
+            border-left: 3px solid #7c83fd;
+        }
+
+        /* ── Layout ── */
+        .content {
+            margin-left: 250px;
+            padding: 24px;
+        }
+
+        /* ── Summary cards ── */
+        .summary-card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.14);
+        }
+
+        .summary-value {
+            font-size: 1.9rem;
+            font-weight: 800;
+        }
+
+        /* ── History table ── */
+        .history-table thead th {
+            background: linear-gradient(90deg, #4361ee, #7c83fd);
+            color: #fff;
+            font-weight: 600;
+            font-size: 13px;
+            letter-spacing: 0.4px;
+            border: none;
+        }
+
+        .history-table tbody tr:nth-child(odd) {
+            background-color: #f8faff;
+        }
+
+        .history-table tbody tr:hover {
+            background-color: #eef1ff;
+        }
+
+        .history-table td {
+            vertical-align: middle;
+            font-size: 14px;
+        }
+
+        /* ── Avatar initials ── */
+        .avatar-circle {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4361ee, #7c83fd);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            color: #fff;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+
+            .content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ── Sidebar ───────────────────────────────────────────────────────────── -->
+    <div class="sidebar">
+        <h3 class="text-center text-white mb-4 px-3">Health AI 🏥</h3>
+        <a href="/dashboard">🏠 Dashboard</a>
+        <a href="/predict">🩺 Symptom Check</a>
+        <a href="/history">📁 History</a>
+        <a href="/profile" class="active">👤 Profile</a>
+        <a href="/logout" style="color:#ff6b6b; margin-top:30px;">🚪 Logout</a>
+    </div>
+
+    <!-- ── Main Content ───────────────────────────────────────────────────────── -->
+    <div class="content">
+
+        <!-- Navbar -->
+        <nav class="navbar navbar-light bg-white rounded-3 shadow-sm mb-4 px-4">
+            <div class="d-flex align-items-center gap-3">
+                <div class="avatar-circle">
+                    {{ user_email[0].upper() }}
+                </div>
+                <div>
+                    <div class="fw-bold fs-5">{{ user_email }}</div>
+                    <small class="text-muted">{{ total_entries }} health entr{{ 'ies' if total_entries != 1 else 'y' }} logged</small>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show rounded-3 shadow-sm mb-3" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+        <!-- ── Latest Metrics Summary Cards ─────────────────────────────────── -->
+        {% if summary %}
+        <h6 class="fw-bold text-muted mb-3 mt-1" style="letter-spacing:0.5px;">LATEST READING</h6>
+        <div class="row g-3 mb-4">
+
+            <div class="col-md-2 col-6">
+                <div class="card summary-card p-3 text-center" style="border-top: 4px solid #4361ee;">
+                    <div class="text-muted small mb-1">Heart Rate ❤️</div>
+                    <div class="summary-value text-primary">{{ summary.heart_rate }}</div>
+                    <small class="text-muted">bpm</small>
+                </div>
+            </div>
+
+            <div class="col-md-2 col-6">
+                <div class="card summary-card p-3 text-center" style="border-top: 4px solid #f72585;">
+                    <div class="text-muted small mb-1">Blood Pressure 🩸</div>
+                    <div class="summary-value text-danger" style="font-size:1.4rem;">{{ summary.blood_pressure }}</div>
+                    <small class="text-muted">mmHg</small>
+                </div>
+            </div>
+
+            <div class="col-md-2 col-6">
+                <div class="card summary-card p-3 text-center" style="border-top: 4px solid #ff9f1c;">
+                    <div class="text-muted small mb-1">Steps 🚶</div>
+                    <div class="summary-value text-warning">{{ summary.steps }}</div>
+                    <small class="text-muted">today</small>
+                </div>
+            </div>
+
+            <div class="col-md-2 col-6">
+                <div class="card summary-card p-3 text-center" style="border-top: 4px solid #2ec4b6;">
+                    <div class="text-muted small mb-1">Weight ⚖️</div>
+                    <div class="summary-value text-success">{{ summary.weight }}</div>
+                    <small class="text-muted">kg</small>
+                </div>
+            </div>
+
+            <div class="col-md-2 col-6">
+                <div class="card summary-card p-3 text-center" style="border-top: 4px solid #7209b7;">
+                    <div class="text-muted small mb-1">Sleep 😴</div>
+                    <div class="summary-value" style="color:#7209b7;">{{ summary.sleep_hours }}</div>
+                    <small class="text-muted">hours</small>
+                </div>
+            </div>
+
+        </div>
+        {% endif %}
+
+        <!-- ── Full Health Entries Table ────────────────────────────────────── -->
+        <div class="card border-0 rounded-3 shadow-sm overflow-hidden">
+
+            <!-- Table header bar -->
+            <div class="d-flex align-items-center justify-content-between px-4 py-3"
+                style="background: linear-gradient(to right, #4361ee, #7c83fd);">
+                <div class="d-flex align-items-center gap-2">
+                    <span style="font-size:1.3rem;">📋</span>
+                    <div>
+                        <h6 class="text-white fw-bold mb-0">Health Entry Log</h6>
+                        <small class="text-white" style="opacity:0.8;">All recorded health measurements</small>
+                    </div>
+                </div>
+                <a href="/dashboard"
+                    class="btn btn-sm fw-semibold px-3"
+                    style="background:#fff; color:#4361ee; border-radius:20px; border:none;">
+                    + Add Entry
+                </a>
+            </div>
+
+            <!-- Table -->
+            {% if entries %}
+            <div class="table-responsive">
+                <table class="table history-table mb-0">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-3">#</th>
+                            <th class="py-3">❤️ Heart Rate</th>
+                            <th class="py-3">🩸 Blood Pressure</th>
+                            <th class="py-3">🚶 Steps</th>
+                            <th class="py-3">⚖️ Weight</th>
+                            <th class="py-3">😴 Sleep (hrs)</th>
+                            <th class="py-3">📅 Date &amp; Time</th>
+                            <th class="py-3">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in entries %}
+                        <tr>
+                            <td class="px-4 text-muted">{{ loop.index }}</td>
+                            <td>
+                                <span class="fw-semibold">{{ entry.heart_rate }}</span>
+                                {% if entry.heart_rate != '--' %}
+                                <small class="text-muted">bpm</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ entry.blood_pressure }}</td>
+                            <td>{{ entry.steps }}</td>
+                            <td>
+                                {{ entry.weight }}
+                                {% if entry.weight != '--' %}
+                                <small class="text-muted">kg</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ entry.sleep_hours }}</td>
+                            <td class="text-muted" style="font-size:12px; white-space:nowrap;">
+                                🕐 {{ entry.created_at }}
+                            </td>
+                            <td>
+                                <button type="button"
+                                    class="btn btn-sm btn-outline-danger rounded-pill px-2 py-1"
+                                    style="font-size:12px;"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#deleteEntryModal"
+                                    data-entry-id="{{ entry.id }}"
+                                    title="Delete entry">
+                                    🗑️ Delete
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-4 py-3 d-flex justify-content-between align-items-center"
+                style="border-top: 1px solid #e8edf5; background:#f8faff;">
+                <small class="text-muted">
+                    Showing {{ entries | length }} entr{{ 'ies' if entries | length != 1 else 'y' }}
+                </small>
+                <a href="/dashboard" class="text-decoration-none" style="color:#4361ee; font-size:13px; font-weight:600;">
+                    Go to Dashboard →
+                </a>
+            </div>
+
+            {% else %}
+            <!-- Empty state -->
+            <div class="text-center py-5">
+                <div style="font-size: 3.5rem;">📊</div>
+                <h5 class="mt-3 fw-bold text-secondary">No health entries yet</h5>
+                <p class="text-muted">
+                    Go to the <a href="/dashboard" class="text-decoration-none fw-semibold" style="color:#4361ee;">Dashboard</a>
+                    and add your first health entry.
+                </p>
+            </div>
+            {% endif %}
+
+        </div><!-- /card -->
+
+    </div><!-- /content -->
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Delete entry confirmation modal -->
+    <div class="modal fade" id="deleteEntryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">🗑️ Delete Entry</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-muted">
+                    Are you sure you want to delete this health entry? This action <strong>cannot be undone</strong>.
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                    <form id="deleteEntryForm" method="POST" action="">
+                        <button type="submit" class="btn btn-danger rounded-pill px-4">Yes, Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set the form action dynamically when modal opens
+        const deleteEntryModal = document.getElementById('deleteEntryModal');
+        deleteEntryModal.addEventListener('show.bs.modal', function (event) {
+            const btn = event.relatedTarget;
+            const entryId = btn.getAttribute('data-entry-id');
+            document.getElementById('deleteEntryForm').action = '/delete/health-entry/' + entryId;
+        });
+    </script>
+
+</body>
+
+</html>

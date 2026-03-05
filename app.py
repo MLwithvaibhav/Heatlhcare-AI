@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 import requests
+import re
 from google import genai
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -22,58 +23,87 @@ def init_db():
     conn = sqlite3.connect("health.db")
     cursor = conn.cursor()
 
-    # Users table
+    # ── Users table ───────────────────────────────────────────────────────────
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT UNIQUE NOT NULL,
+        id       INTEGER PRIMARY KEY AUTOINCREMENT,
+        email    TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
 
-    # Chat history table
+    # ── Chat history table ────────────────────────────────────────────────────
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS chat_history (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user TEXT,
-        role TEXT,
-        message TEXT,
+        id       INTEGER PRIMARY KEY AUTOINCREMENT,
+        user     TEXT,
+        role     TEXT,
+        message  TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
 
-    # Health Metrics table
+    # ── Legacy health_metrics table (kept for backward-compat) ────────────────
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS health_metrics (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_email TEXT,
-        steps INTEGER,
-        heart_rate INTEGER,
-        sleep_hours REAL,
-        weight REAL,
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_email     TEXT,
+        steps          INTEGER,
+        heart_rate     INTEGER,
+        sleep_hours    REAL,
+        weight         REAL,
         blood_pressure TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
 
-    # ── Safe migrations: add columns that may be missing from older DB ──────
-    # ALTER TABLE ignores the column if it already exists (via try/except)
-    migrations = [
+    # ── health_entries — new table linked by user_id (integer FK) ────────────
+    # This is the primary store for all health data going forward.
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS health_entries (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id        INTEGER NOT NULL,
+        heart_rate     INTEGER,
+        blood_pressure TEXT,
+        weight         REAL,
+        steps          INTEGER,
+        sleep_hours    REAL,
+        created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+    """)
+
+    # ── Safe migrations for legacy table ─────────────────────────────────────
+    for col_sql in [
         "ALTER TABLE health_metrics ADD COLUMN sleep_hours REAL",
         "ALTER TABLE health_metrics ADD COLUMN weight REAL",
         "ALTER TABLE health_metrics ADD COLUMN blood_pressure TEXT",
         "ALTER TABLE health_metrics ADD COLUMN heart_rate INTEGER",
         "ALTER TABLE health_metrics ADD COLUMN steps INTEGER",
-    ]
-    for migration in migrations:
+    ]:
         try:
-            cursor.execute(migration)
+            cursor.execute(col_sql)
         except sqlite3.OperationalError:
             pass  # Column already exists — skip silently
 
     conn.commit()
     conn.close()
+
+
+# ── Helper: resolve user_id from session email ────────────────────────────────
+def get_user_id(cursor, email):
+    """Return the integer user.id for the given email, or None."""
+    cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
+    row = cursor.fetchone()
+    return row[0] if row else None
+
+
+# ── Helper: open a connection with row_factory for dict-like access ────────────
+def get_db():
+    conn = sqlite3.connect("health.db")
+    conn.row_factory = sqlite3.Row   # rows behave like dicts
+    return conn
 
 @app.route("/")
 def home():
@@ -133,74 +163,95 @@ def dashboard():
         return redirect(url_for("login"))
 
     user_email = session["user_email"]
-    conn = sqlite3.connect("health.db")
+    conn = get_db()
     cursor = conn.cursor()
 
-    # ── Handle form submission (POST) ──────────────────────────────────────
-    if request.method == "POST":
-        steps         = request.form.get("steps")
-        heart_rate    = request.form.get("heart_rate")
-        sleep_hours   = request.form.get("sleep_hours")
-        weight        = request.form.get("weight")
-        blood_pressure = request.form.get("blood_pressure")
+    # Resolve the integer user_id once
+    user_id = get_user_id(cursor, user_email)
 
+    # ── Handle form submission (POST) ────────────────────────────────────────
+    if request.method == "POST":
+        steps          = request.form.get("steps",          type=int)
+        heart_rate     = request.form.get("heart_rate",     type=int)
+        sleep_hours    = request.form.get("sleep_hours",    type=float)
+        weight         = request.form.get("weight",         type=float)
+        blood_pressure = request.form.get("blood_pressure", default="")
+
+        # ── Save into new health_entries table (user_id FK) ──────────────────
         cursor.execute("""
-            INSERT INTO health_metrics
-            (user_email, steps, heart_rate, sleep_hours, weight, blood_pressure)
+            INSERT INTO health_entries
+                (user_id, heart_rate, blood_pressure, weight, steps, sleep_hours)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (user_email, steps, heart_rate, sleep_hours, weight, blood_pressure))
+        """, (user_id, heart_rate, blood_pressure, weight, steps, sleep_hours))
 
         conn.commit()
         conn.close()
         flash("Health entry added successfully! ✅", "success")
         return redirect(url_for("dashboard"))
 
-    # ── Fetch last 20 entries for charts (GET) ──────────────────────────────
+    # ── Fetch last 20 entries for charts (GET) ───────────────────────────────
+    # We query health_entries (new table) first; fall back to legacy
+    # health_metrics if user has no entries yet in the new table.
     cursor.execute("""
         SELECT steps, heart_rate, sleep_hours, weight, blood_pressure, created_at
-        FROM health_metrics
-        WHERE user_email = ?
-        ORDER BY created_at ASC
-        LIMIT 20
-    """, (user_email,))
-
+        FROM   health_entries
+        WHERE  user_id = ?
+        ORDER  BY created_at ASC
+        LIMIT  20
+    """, (user_id,))
     rows = cursor.fetchall()
+
+    # Legacy fallback — users who logged data before the migration
+    if not rows:
+        cursor.execute("""
+            SELECT steps, heart_rate, sleep_hours, weight, blood_pressure, created_at
+            FROM   health_metrics
+            WHERE  user_email = ?
+            ORDER  BY created_at ASC
+            LIMIT  20
+        """, (user_email,))
+        rows = cursor.fetchall()
+
     conn.close()
 
-    # ── Build chart arrays ──────────────────────────────────────────────────
+    # ── Build chart arrays ───────────────────────────────────────────────────
+    def _fmt_ts(raw):
+        """Format a raw SQLite timestamp string for chart labels."""
+        try:
+            return datetime.strptime(raw, "%Y-%m-%d %H:%M:%S").strftime("%b %d %H:%M")
+        except Exception:
+            return str(raw)[-8:-3]
+
     if rows:
-        steps_data      = [r[0] for r in rows]
-        heart_rate_data = [r[1] for r in rows]
-        sleep_data      = [r[2] for r in rows]
-        weight_data     = [r[3] for r in rows]
-        # Format timestamp as "Mar 01 14:32"
-        timestamps = []
-        for r in rows:
-            try:
-                dt = datetime.strptime(r[5], "%Y-%m-%d %H:%M:%S")
-                timestamps.append(dt.strftime("%b %d %H:%M"))
-            except Exception:
-                timestamps.append(r[5][-8:-3])
+        steps_data      = [r["steps"]       for r in rows]
+        heart_rate_data = [r["heart_rate"]   for r in rows]
+        sleep_data      = [r["sleep_hours"]  for r in rows]
+        weight_data     = [r["weight"]       for r in rows]
+        timestamps      = [_fmt_ts(r["created_at"]) for r in rows]
 
         latest = rows[-1]
-        # Structured dict for metric cards
         data = {
-            "steps":          latest[0],
-            "heart_rate":     latest[1],
-            "sleep_hours":    latest[2],
-            "weight":         latest[3],
-            "blood_pressure": latest[4],
+            "steps":          latest["steps"]       or "--",
+            "heart_rate":     latest["heart_rate"]  or "--",
+            "sleep_hours":    latest["sleep_hours"] or "--",
+            "weight":         latest["weight"]      or "--",
+            "blood_pressure": latest["blood_pressure"] or "--/--",
         }
+        # Recent entries for the activity feed (newest first, up to 5)
         activities = [
-            {"activity": f"Steps: {r[0]}", "duration": r[5][-8:-3]}
+            {
+                "activity": f"❤️ {r['heart_rate']} bpm  🚶 {r['steps']} steps  😴 {r['sleep_hours']} h",
+                "duration": _fmt_ts(r["created_at"])
+            }
             for r in rows[-5:][::-1]
         ]
     else:
         steps_data = heart_rate_data = sleep_data = weight_data = []
         timestamps = []
-        latest = None
-        data = {"steps": "--", "heart_rate": "--",
-                "sleep_hours": "--", "weight": "--", "blood_pressure": "--/--"}
+        data = {
+            "steps": "--", "heart_rate": "--",
+            "sleep_hours": "--", "weight": "--", "blood_pressure": "--/--"
+        }
         activities = []
 
     return render_template(
@@ -215,54 +266,100 @@ def dashboard():
     )
 
 
-# ── JSON endpoint: live chart refresh without page reload ──────────────────
+# ── JSON endpoint: live chart refresh without page reload ────────────────────
 @app.route("/api/health-data")
 def api_health_data():
     if "user_email" not in session:
         return jsonify({"error": "unauthorized"}), 401
 
     user_email = session["user_email"]
-    conn = sqlite3.connect("health.db")
+    conn = get_db()
     cursor = conn.cursor()
+
+    user_id = get_user_id(cursor, user_email)
+
+    # Prefer the new health_entries table
     cursor.execute("""
         SELECT steps, heart_rate, sleep_hours, weight, created_at
-        FROM health_metrics
-        WHERE user_email = ?
-        ORDER BY created_at ASC
-        LIMIT 20
-    """, (user_email,))
+        FROM   health_entries
+        WHERE  user_id = ?
+        ORDER  BY created_at ASC
+        LIMIT  20
+    """, (user_id,))
     rows = cursor.fetchall()
+
+    # Fallback to legacy table
+    if not rows:
+        cursor.execute("""
+            SELECT steps, heart_rate, sleep_hours, weight, created_at
+            FROM   health_metrics
+            WHERE  user_email = ?
+            ORDER  BY created_at ASC
+            LIMIT  20
+        """, (user_email,))
+        rows = cursor.fetchall()
+
     conn.close()
 
-    timestamps = []
-    for r in rows:
+    def _fmt(raw):
         try:
-            dt = datetime.strptime(r[4], "%Y-%m-%d %H:%M:%S")
-            timestamps.append(dt.strftime("%b %d %H:%M"))
+            return datetime.strptime(raw, "%Y-%m-%d %H:%M:%S").strftime("%b %d %H:%M")
         except Exception:
-            timestamps.append(r[4][-8:-3])
+            return str(raw)[-8:-3]
 
     return jsonify({
-        "labels":     timestamps,
-        "steps":      [r[0] for r in rows],
-        "heart_rate": [r[1] for r in rows],
-        "sleep":      [r[2] for r in rows],
-        "weight":     [r[3] for r in rows],
+        "labels":     [_fmt(r["created_at"]) for r in rows],
+        "steps":      [r["steps"]      for r in rows],
+        "heart_rate": [r["heart_rate"] for r in rows],
+        "sleep":      [r["sleep_hours"] for r in rows],
+        "weight":     [r["weight"]     for r in rows],
     })
-    
 
-# ===== AI FUNCTION (ROUTE KE BAHAR) =====
+
+# ===== AI FUNCTION =====
 def ask_ai(message):
-
+    """
+    Calls the Gemini model and returns the raw response text.
+    The prompt instructs the model to ALWAYS start its reply with
+    one of:  [RISK: LOW]  [RISK: MODERATE]  [RISK: HIGH]
+    so that we can parse it out on the Python side.
+    """
     client = genai.Client(api_key="API KEY")
+
+    prompt = (
+        "You are a medical assistant. "
+        "At the very beginning of your reply, output exactly one of these "
+        "tags (no other text before it): "
+        "[RISK: LOW], [RISK: MODERATE], or [RISK: HIGH]. "
+        "Choose based on the urgency of the symptoms described. "
+        "Then, on the next line, give a brief, clear medical response.\n"
+        f"User: {message}"
+    )
 
     response = client.models.generate_content(
         model="gemini-3-flash-preview",
-        contents=f"You are a medical assistant. Answer briefly.\nUser: {message}",
+        contents=prompt,
     )
 
     return response.text
 
+
+# ── Helper: extract risk level from AI reply ──────────────────────────────────
+_RISK_RE = re.compile(r"\[RISK:\s*(LOW|MODERATE|HIGH)\]", re.IGNORECASE)
+
+def parse_risk(raw_text):
+    """
+    Returns (risk_level, clean_text).
+    risk_level is 'LOW', 'MODERATE', 'HIGH', or None.
+    clean_text has the tag stripped out.
+    """
+    match = _RISK_RE.search(raw_text)
+    if match:
+        level = match.group(1).upper()
+        # Remove the tag (and any leading whitespace/newline after it)
+        clean = _RISK_RE.sub("", raw_text, count=1).lstrip("\n ").strip()
+        return level, clean
+    return None, raw_text.strip()
 
 
 # ===== ROUTE =====
@@ -274,100 +371,157 @@ def ask_ai(message):
 @app.route("/predict", methods=["GET", "POST"])
 def predict():
 
-    # Agar session me "chat" exist nahi karta
-    # toh ek empty list bana do
-    # Session temporary storage hota hai jo user ke browser ke liye hota hai
+    if "user_email" not in session:
+        return redirect(url_for("login"))
+
     if "chat" not in session:
         session["chat"] = []
 
-    # Agar request POST method se aayi hai (form submit hua hai)
     if request.method == "POST":
-
-        # Form se message nikaal rahe hain
-        # request.form me HTML form ke data hote hain
         message = request.form.get("message")
 
-        # Check kar rahe hain ki message empty na ho
-        # message.strip() extra spaces remove karta hai
         if message and message.strip():
-
-            # User ka message session chat me add kar rahe hain
-            # Ye frontend me chat history show karne ke kaam aata hai
+            # 1. Add the user message to session
             session["chat"].append({
                 "role": "user",
-                "text": message
+                "text": message,
+                "risk": None
             })
 
-            # AI ko message bhej rahe hain
-            # ask_ai() tumhara custom function hoga jo AI response return karta hai
-            reply = ask_ai(message)
+            # 2. Call AI and parse the risk tag + clean text
+            raw_reply  = ask_ai(message)
+            risk_level, clean_reply = parse_risk(raw_reply)
 
-            # AI ka reply bhi session me add kar diya
+            # 3. Add AI reply to session with risk metadata
             session["chat"].append({
                 "role": "ai",
-                "text": reply
+                "text": clean_reply,
+                "risk": risk_level        # 'LOW' | 'MODERATE' | 'HIGH' | None
             })
+            session.modified = True       # tell Flask the session changed
 
-            # ---------------- DATABASE PART ----------------
+            # 4. Persist to database (store raw reply so we can keep the tag for history!)
+            try:
+                conn = get_db()
+                cursor = conn.cursor()
+                cursor.execute(
+                    "INSERT INTO chat_history (user, role, message) VALUES (?, ?, ?)",
+                    (session.get("user_email"), "user", message)
+                )
+                cursor.execute(
+                    "INSERT INTO chat_history (user, role, message) VALUES (?, ?, ?)",
+                    (session.get("user_email"), "ai", raw_reply)
+                )
+                conn.commit()
+                conn.close()
+            except Exception:
+                pass   # DB errors should not break the chat UX
 
-            # SQLite database se connect ho rahe hain
-            conn = sqlite3.connect("health.db")
-
-            # Cursor object banate hain query execute karne ke liye
-            cursor = conn.cursor()
-
-            # User ka message database me save kar rahe hain
-            # ? placeholders SQL injection se bachate hain
-            cursor.execute("""
-            INSERT INTO chat_history (user, role, message)
-            VALUES (?, ?, ?)
-            """, (session["user"], "user", message))
-
-            # AI ka reply bhi database me save kar rahe hain
-            cursor.execute("""
-            INSERT INTO chat_history (user, role, message)
-            VALUES (?, ?, ?)
-            """, (session["user"], "ai", reply))
-
-            # Changes database me permanently save karne ke liye
-            conn.commit()
-
-            # Connection close karna important hai memory free karne ke liye
-            conn.close()
-
-    # Finally predict.html render ho raha hai
-    # aur chat history template ko pass kar rahe hain
     return render_template("predict.html", chat=session["chat"])
 
-#History page
+
+
+# ── Chat History page ─────────────────────────────────────────────────────────
 @app.route("/history")
 def history():
 
     if "user_email" not in session:
         return redirect(url_for("login"))
 
-    conn = sqlite3.connect("health.db")
+    conn = get_db()
     cursor = conn.cursor()
 
     cursor.execute("""
-    SELECT role, message, created_at
-    FROM chat_history
-    WHERE user = ?
-    ORDER BY created_at ASC
+        SELECT id, role, message, created_at
+        FROM   chat_history
+        WHERE  user = ?
+        ORDER  BY created_at ASC
     """, (session["user_email"],))
-    
+
     rows = cursor.fetchall()
     conn.close()
 
     history_data = []
-    for row in rows:
+    for r in rows:
+        text = r["message"]
+        risk = None
+        if r["role"] == "ai":
+            risk, text = parse_risk(text)
+            
         history_data.append({
-            "role": row[0],
-            "text": row[1],
-            "time": row[2]
+            "id": r["id"],
+            "role": r["role"],
+            "text": text,
+            "risk": risk,
+            "time": r["created_at"]
         })
 
     return render_template("history.html", history=history_data)
+
+
+
+# ── Profile page — full health entry history for current user ─────────────────
+@app.route("/profile")
+def profile():
+
+    if "user_email" not in session:
+        return redirect(url_for("login"))
+
+    user_email = session["user_email"]
+    conn = get_db()
+    cursor = conn.cursor()
+
+    user_id = get_user_id(cursor, user_email)
+
+    # All entries, newest first
+    cursor.execute("""
+        SELECT id, heart_rate, blood_pressure, weight, steps, sleep_hours, created_at
+        FROM   health_entries
+        WHERE  user_id = ?
+        ORDER  BY created_at DESC
+    """, (user_id,))
+    rows = cursor.fetchall()
+
+    # Also pull legacy rows so the table is complete
+    cursor.execute("""
+        SELECT id, heart_rate, blood_pressure, weight, steps, sleep_hours, created_at
+        FROM   health_metrics
+        WHERE  user_email = ?
+        ORDER  BY created_at DESC
+    """, (user_email,))
+    legacy_rows = cursor.fetchall()
+
+    conn.close()
+
+    def _fmt_ts(raw):
+        try:
+            return datetime.strptime(str(raw), "%Y-%m-%d %H:%M:%S").strftime("%d %b %Y, %H:%M")
+        except Exception:
+            return str(raw)
+
+    def _to_dict(r):
+        return {
+            "id":             r["id"],
+            "heart_rate":     r["heart_rate"]     or "--",
+            "blood_pressure": r["blood_pressure"] or "--/--",
+            "weight":         r["weight"]         or "--",
+            "steps":          r["steps"]          or "--",
+            "sleep_hours":    r["sleep_hours"]    or "--",
+            "created_at":     _fmt_ts(r["created_at"]),
+        }
+
+    entries = [_to_dict(r) for r in rows] + [_to_dict(r) for r in legacy_rows]
+
+    # Summary stats (latest entry)
+    summary = entries[0] if entries else None
+
+    return render_template(
+        "profile.html",
+        user_email=user_email,
+        entries=entries,
+        summary=summary,
+        total_entries=len(entries),
+    )
 
 
 
@@ -399,21 +553,50 @@ def register():
 
     return render_template("register.html")
 
-@app.route("/delete/<int:id>")
-def delete(id):
 
-    if "user" not in session:
+# ── Delete a health entry (profile page) ────────────────────────────────────
+@app.route("/delete/health-entry/<int:entry_id>", methods=["POST"])
+def delete_health_entry(entry_id):
+    if "user_email" not in session:
         return redirect(url_for("login"))
 
-    conn = sqlite3.connect("health.db")
+    conn = get_db()
     cursor = conn.cursor()
+    user_id = get_user_id(cursor, session["user_email"])
 
-    cursor.execute("DELETE FROM history WHERE id = ? AND user = ?", (id, session["user"]))
-
+    # Only delete the row if it actually belongs to this user
+    cursor.execute(
+        "DELETE FROM health_entries WHERE id = ? AND user_id = ?",
+        (entry_id, user_id)
+    )
     conn.commit()
     conn.close()
 
+    flash("Health entry deleted. 🗑️", "success")
+    return redirect(url_for("profile"))
+
+
+# ── Delete a single chat message (history page) ──────────────────────────────
+@app.route("/delete/chat/<int:chat_id>", methods=["POST"])
+def delete_chat(chat_id):
+    if "user_email" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Only delete rows that belong to this user
+    cursor.execute(
+        "DELETE FROM chat_history WHERE id = ? AND user = ?",
+        (chat_id, session["user_email"])
+    )
+    conn.commit()
+    conn.close()
+
+    flash("Message deleted. 🗑️", "success")
     return redirect(url_for("history"))
+
+
 
 
 

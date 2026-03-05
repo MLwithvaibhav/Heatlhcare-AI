@@ -74,6 +74,38 @@
             border-radius: 99px;
         }
 
+        /* ── Risk level badges ──────────────────────────────────────── */
+        .risk-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            padding: 3px 10px;
+            border-radius: 99px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .risk-low {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
+        }
+
+        .risk-moderate {
+            background: #fef9c3;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+
+        .risk-high {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+        }
+
         @media (max-width: 768px) {
             .sidebar {
                 width: 100%;
@@ -108,6 +140,18 @@
             <span class="navbar-brand mb-0 h1 fw-bold">Chat History 📜</span>
             <span class="text-muted small">Your AI consultation log</span>
         </nav>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show rounded-3 shadow-sm mb-3" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
 
         <!-- ── History Card ─────────────────────────────────────────────── -->
         <div class="bg-white rounded-3 shadow-sm overflow-hidden">
@@ -160,6 +204,21 @@
 
                     <!-- Bubble body -->
                     <div style="max-width:62%; word-break:break-word;">
+                        
+                        {% if item.risk == 'LOW' %}
+                        <span class="risk-badge risk-low">
+                            ✅ LOW RISK
+                        </span><br>
+                        {% elif item.risk == 'MODERATE' %}
+                        <span class="risk-badge risk-moderate">
+                            ⚠️ MODERATE RISK
+                        </span><br>
+                        {% elif item.risk == 'HIGH' %}
+                        <span class="risk-badge risk-high">
+                            🔴 HIGH RISK
+                        </span><br>
+                        {% endif %}
+
                         <small class="fw-semibold d-block mb-1 px-1"
                             style="color: {% if item.role == 'user' %}#4361ee{% else %}#2ec4b6{% endif %}; font-size: 11px; letter-spacing:0.3px;">
                             {% if item.role == 'user' %}YOU{% else %}HEALTH AI{% endif %}
@@ -174,9 +233,21 @@
                             {{ item.text }}
                         </div>
 
-                        <small class="d-block mt-1 px-1 text-muted" style="font-size:11px;">
-                            🕐 {{ item.time }}
-                        </small>
+                        <div class="d-flex align-items-center gap-2 mt-1 px-1">
+                            <small class="text-muted" style="font-size:11px;">
+                                🕐 {{ item.time }}
+                            </small>
+                            <!-- Delete button for this message -->
+                            <button type="button"
+                                class="btn btn-link p-0 text-danger"
+                                style="font-size:11px; line-height:1; text-decoration:none;"
+                                data-bs-toggle="modal"
+                                data-bs-target="#deleteChatModal"
+                                data-chat-id="{{ item.id }}"
+                                title="Delete message">
+                                🗑️
+                            </button>
+                        </div>
                     </div>
 
                     <!-- User avatar (right side) -->
@@ -216,6 +287,36 @@
     </div><!-- /content -->
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Delete chat message confirmation modal -->
+    <div class="modal fade" id="deleteChatModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">🗑️ Delete Message</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-muted">
+                    Are you sure you want to delete this message? This action <strong>cannot be undone</strong>.
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                    <form id="deleteChatForm" method="POST" action="">
+                        <button type="submit" class="btn btn-danger rounded-pill px-4">Yes, Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const deleteChatModal = document.getElementById('deleteChatModal');
+        deleteChatModal.addEventListener('show.bs.modal', function (event) {
+            const btn = event.relatedTarget;
+            const chatId = btn.getAttribute('data-chat-id');
+            document.getElementById('deleteChatForm').action = '/delete/chat/' + chatId;
+        });
+    </script>
 
 </body>
 

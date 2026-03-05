@@ -1,43 +1,408 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Healthcare AI</title>
-
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health AI | Smart Healthcare Assistant</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#4361ee',
+                        secondary: '#7c83fd',
+                        dark: '#1a1f36',
+                        accent: '#2ec4b6'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8faff;
+            color: #1a1f36;
+            overflow-x: hidden;
+        }
+
+        /* Nav */
+        .navbar-custom {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+            transition: all 0.3s ease;
+        }
+
+        /* Buttons */
+        .btn-gradient {
+            background: linear-gradient(135deg, #4361ee, #7c83fd);
+            color: white;
+            border: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
+        }
+        
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.25);
+            color: white;
+        }
+
+        .btn-outline-custom {
+            border: 2px solid #4361ee;
+            color: #4361ee;
+            transition: all 0.2s;
+            font-weight: 600;
+            background: transparent;
+        }
+
+        .btn-outline-custom:hover {
+            background: #4361ee;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.15);
+        }
+
+        /* Hero */
+        .hero-section {
+            padding: 140px 0 100px;
+            position: relative;
+        }
+
+        .hero-title {
+            font-weight: 800;
+            font-size: 3.5rem;
+            line-height: 1.15;
+            letter-spacing: -1.5px;
+            background: linear-gradient(135deg, #1a1f36, #3a0ca3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 24px;
+        }
+
+        .hero-subtitle {
+            font-size: 1.2rem;
+            color: #4b5563;
+            line-height: 1.6;
+            margin-bottom: 40px;
+            max-width: 90%;
+        }
+
+        /* Blobs background */
+        .blob-1 {
+            position: absolute;
+            top: -10%;
+            left: -10%;
+            width: 600px;
+            height: 600px;
+            background: rgba(124, 131, 253, 0.15);
+            filter: blur(80px);
+            border-radius: 50%;
+            z-index: -1;
+            animation: float 10s ease-in-out infinite;
+        }
+
+        .blob-2 {
+            position: absolute;
+            bottom: -20%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: rgba(46, 196, 182, 0.1);
+            filter: blur(80px);
+            border-radius: 50%;
+            z-index: -1;
+            animation: float 12s ease-in-out infinite reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-40px) scale(1.05); }
+        }
+
+        /* Feature Cards */
+        .feature-card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px 32px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.03);
+            border: 1px solid rgba(0,0,0,0.02);
+            transition: transform 0.3s, box-shadow 0.3s;
+            height: 100%;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.07);
+        }
+
+        .feature-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            margin-bottom: 24px;
+        }
+
+        .icon-blue { background: #e0e7ff; color: #4361ee; }
+        .icon-green { background: #dcfce7; color: #15803d; }
+        .icon-purple { background: #f3e8ff; color: #7e22ce; }
+
+        /* Floating Graphic element */
+        .floating-ui-wrapper {
+            perspective: 1000px;
+        }
+
+        .floating-ui {
+            background: white;
+            border-radius: 28px;
+            padding: 24px;
+            box-shadow: 0 25px 60px -12px rgba(67, 97, 238, 0.15);
+            border: 1px solid rgba(0,0,0,0.04);
+            transform: rotateY(-8deg) rotateX(4deg);
+            transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+            position: relative;
+        }
+
+        .floating-ui:hover {
+            transform: rotateY(0deg) rotateX(0deg) scale(1.02);
+        }
+
+        .ui-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+            margin-bottom: 20px;
+        }
+        
+        .chat-bbl {
+            border-radius: 18px;
+            padding: 14px 18px;
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+            max-width: 85%;
+            line-height: 1.5;
+        }
+
+        .chat-bbl-user {
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-bbl-ai {
+            background: #f1f5ff;
+            color: #1a1f36;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+
+        .risk-badge-decor {
+            display: inline-block;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 99px;
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
+            margin-bottom: 6px;
+        }
+
+        @media (max-width: 991px) {
+            .hero-title { font-size: 2.8rem; }
+            .hero-section { padding: 100px 0 60px; }
+            .floating-ui { transform: none; margin-top: 40px; }
+        }
+    </style>
 </head>
 
-<body class="bg-dark text-white">
+<body>
+
+    <div class="blob-1"></div>
+    <div class="blob-2"></div>
 
     <!-- NAVBAR -->
-    <nav class="navbar navbar-dark bg-black px-4">
-        <span class="navbar-brand mb-0 h1">Healthcare AI 🏥</span>
-        <div>
-            <a href="/login" class="btn btn-outline-light me-2">Login</a>
-            <a href="/register" class="btn btn-success">Register</a>
+    <nav class="navbar navbar-expand-lg navbar-custom fixed-top py-3">
+        <div class="container">
+            <a class="navbar-brand fw-bold fs-4 text-dark d-flex align-items-center gap-2" href="/">
+                <span class="fs-3">🏥</span> Health AI
+            </a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center gap-3 mt-3 mt-lg-0">
+                    <li class="nav-item">
+                        <a href="/login" class="nav-link fw-semibold text-dark hover:text-primary transition-colors">Log In</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/register" class="btn btn-gradient rounded-pill px-4 py-2">Get Started</a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </nav>
 
-
     <!-- HERO SECTION -->
-    <div class="container d-flex flex-column justify-content-center align-items-center text-center" style="height: 85vh;">
-        
-        <h1 class="display-4 mb-3">
-            AI-Powered Health Prediction
-        </h1>
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <!-- Text Column -->
+                <div class="col-lg-6 z-10 pe-lg-5">
+                    <div class="inline-block px-3 py-1 mb-4 rounded-pill font-semibold text-sm" style="background:#e0e7ff; color:#4361ee;">
+                        ✨ Next-Gen Health Tracking
+                    </div>
+                    <h1 class="hero-title">
+                        Understand your health,<br>intelligently.
+                    </h1>
+                    <p class="hero-subtitle">
+                        An AI-powered dashboard that tracks your vitals, analyses your symptoms, and guides you toward better health decisions in real time.
+                    </p>
+                    <div class="d-flex flex-wrap gap-3">
+                        <a href="/register" class="btn btn-gradient rounded-pill px-5 py-3 fs-6 h-auto">
+                            Start Free Trial
+                        </a>
+                        <a href="/login" class="btn btn-outline-custom rounded-pill px-5 py-3 fs-6 h-auto">
+                            Go to Dashboard →
+                        </a>
+                    </div>
+                    
+                    <div class="mt-5 d-flex align-items-center gap-4 text-muted small fw-medium">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="bg-success rounded-circle" style="width:16px;height:16px;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;">✓</span> No credit card required
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="bg-success rounded-circle" style="width:16px;height:16px;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;">✓</span> Secure & Private
+                        </div>
+                    </div>
+                </div>
 
-        <p class="lead mb-4">
-            Enter your symptoms and get insights about possible conditions in seconds.
-        </p>
+                <!-- Graphic Column -->
+                <div class="col-lg-6 mt-5 mt-lg-0 z-10 floating-ui-wrapper">
+                    <div class="floating-ui">
+                        <!-- Mac-like dots -->
+                        <div class="mb-2">
+                            <span class="ui-dot" style="background:#ff5f56;"></span>
+                            <span class="ui-dot" style="background:#ffbd2e;"></span>
+                            <span class="ui-dot" style="background:#27c93f;"></span>
+                            <span class="ms-2 fw-semibold text-muted" style="font-size:12px;">Symptom Check</span>
+                        </div>
 
-        <div>
-            <a href="/login" class="btn btn-primary btn-lg me-3">Login</a>
-            <a href="/register" class="btn btn-success btn-lg">Create Account</a>
+                        <!-- Mock Chat -->
+                        <div class="rounded-4 p-4 mt-3" style="background:#fafcff; border:1px solid #eef2f6;">
+                            
+                            <div class="chat-bbl chat-bbl-user shadow-sm">
+                                I've been having a mild headache and feeling tired for the last two days. What could it be?
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center shadow-sm flex-shrink-0"
+                                    style="width:36px;height:36px;background:linear-gradient(135deg,#4361ee,#7c83fd);font-size:1rem;">
+                                    🤖
+                                </div>
+                                <div class="chat-bbl chat-bbl-ai shadow-sm m-0">
+                                    <span class="risk-badge-decor">✅ LOW RISK</span><br>
+                                    <span class="fw-semibold" style="font-size:11px;color:#2ec4b6;">HEALTH AI</span><br>
+                                    Based on your symptoms, this could be due to dehydration, lack of sleep, or mild stress. Ensure you're drinking enough water and getting 7-8 hours of sleep. If it persists, consult a doctor.
+                                </div>
+                            </div>
+                            
+                        </div>
+                        
+                        <!-- Floating mock card -->
+                        <div class="position-absolute shadow-lg rounded-4 p-3 bg-white d-flex align-items-center gap-3" style="bottom: -20px; right: -20px; border:1px solid #f1f5ff; animation: float 6s infinite;">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:40px;height:40px;background:#fff5f5;color:#f72585;font-size:1.2rem;">
+                                ❤️
+                            </div>
+                            <div>
+                                <small class="text-muted d-block" style="font-size:11px;font-weight:600;">Heart Rate</small>
+                                <span class="fw-bold" style="font-size:1.1rem;">72 <small class="fw-normal text-muted">bpm</small></span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
         </div>
+    </section>
 
-    </div>
+    <!-- FEATURES SECTION -->
+    <section class="py-5 my-5 relative z-10">
+        <div class="container">
+            <div class="text-center mb-5 pb-3">
+                <h2 class="fw-bold fs-1 mb-3" style="color:#1a1f36;">Everything you need for your health</h2>
+                <p class="text-muted fs-5 mx-auto" style="max-width:600px;">Combine beautiful tracking dashboards with intelligent AI consultations.</p>
+            </div>
 
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon icon-blue">📊</div>
+                        <h4 class="fw-bold mb-3">Live Health Dashboard</h4>
+                        <p class="text-muted mb-0">Track your heart rate, steps, sleep, and weight with beautiful, interactive animated charts.</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon icon-purple">🧠</div>
+                        <h4 class="fw-bold mb-3">AI Symptom Check</h4>
+                        <p class="text-muted mb-0">Describe how you feel to your personal AI assistant. Get instant feedback and automated risk-level assessments.</p>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon icon-green">📁</div>
+                        <h4 class="fw-bold mb-3">Secure Profile History</h4>
+                        <p class="text-muted mb-0">All your vital entries and past AI consultations are securely stored and easily accessible from your profile.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER CTA -->
+    <section class="py-5 mb-0" style="background: linear-gradient(135deg, #1a1f36, #2d3561); color: white;">
+        <div class="container text-center py-5">
+            <h2 class="fw-bold mb-4">Ready to take control of your health?</h2>
+            <p class="mb-5 fs-5 mx-auto opacity-75" style="max-width: 600px;">Join today to access your personal healthcare suite, complete with smart tracking and AI insights.</p>
+            <a href="/register" class="btn btn-light text-primary fw-bold rounded-pill px-5 py-3 fs-5 shadow">Join Health AI Now</a>
+        </div>
+    </section>
+
+    <footer class="py-4 text-center" style="background: #111526; color: #a1a1aa;">
+        <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center">
+            <p class="mb-2 mb-md-0">&copy; 2024 Health AI. All rights reserved.</p>
+            <div class="d-flex gap-4">
+                <a href="#" class="text-decoration-none" style="color: #a1a1aa;">Privacy</a>
+                <a href="#" class="text-decoration-none" style="color: #a1a1aa;">Terms</a>
+                <a href="#" class="text-decoration-none" style="color: #a1a1aa;">Contact</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

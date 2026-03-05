@@ -78,6 +78,13 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         }
 
+        /* Ensure Tailwind inputs stay inside their grid columns */
+        .health-form-card input {
+            box-sizing: border-box;
+            max-width: 100%;
+            min-width: 0;
+        }
+
         @media (max-width: 768px) {
             .sidebar {
                 width: 100%;
@@ -235,113 +242,202 @@
             {% endif %}
         </div>
 
+        <!-- ── Add Health Entry — Tailwind CSS styled ────────────────────────────── -->
+        <div class="health-form-card mx-auto rounded-2xl overflow-hidden shadow-xl mb-8">
+
+            <!-- Card Header -->
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center gap-3">
+                <span class="text-2xl">🏥</span>
+                <div>
+                    <h5 class="text-white text-xl font-bold tracking-wide">Add Health Entry</h5>
+                    <p class="text-blue-100 text-sm">Log your daily health metrics below</p>
+                </div>
+            </div>
+
+            <!-- Card Body -->
+            <div class="bg-white px-6 py-6">
+                <form method="POST" action="/dashboard">
+
+                    <!-- Row 1: Steps | Heart Rate | Sleep -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+
+                        <div class="flex flex-col gap-1">
+                            <label class="text-sm font-semibold text-gray-600">🚶 Steps</label>
+                            <input type="number" name="steps" placeholder="e.g. 8000" required
+                                class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-800 placeholder-gray-400 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                        </div>
+
+                        <div class="flex flex-col gap-1">
+                            <label class="text-sm font-semibold text-gray-600">❤️ Heart Rate</label>
+                            <input type="number" name="heart_rate" placeholder="e.g. 72 bpm" required
+                                class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-800 placeholder-gray-400 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent transition">
+                        </div>
+
+                        <div class="flex flex-col gap-1">
+                            <label class="text-sm font-semibold text-gray-600">😴 Sleep (hours)</label>
+                            <input type="number" step="0.1" name="sleep_hours" placeholder="e.g. 7.5" required
+                                class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-800 placeholder-gray-400 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition">
+                        </div>
+
+                    </div>
+
+                    <!-- Row 2: Weight | Blood Pressure -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+
+                        <div class="flex flex-col gap-1">
+                            <label class="text-sm font-semibold text-gray-600">⚖️ Weight (kg)</label>
+                            <input type="number" step="0.1" name="weight" placeholder="e.g. 70.5" required
+                                class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-800 placeholder-gray-400 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent transition">
+                        </div>
+
+                        <div class="flex flex-col gap-1">
+                            <label class="text-sm font-semibold text-gray-600">🩸 Blood Pressure</label>
+                            <input type="text" name="blood_pressure" placeholder="e.g. 120/80" required
+                                class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-800 placeholder-gray-400 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent transition">
+                        </div>
+
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit"
+                        class="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm tracking-wider shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+                        ➕ Add Health Entry
+                    </button>
+
+                </form>
+            </div>
+
+        </div>
+
     </div><!-- /content -->
 
-    <!-- ── Add Health Entry — Tailwind CSS styled ────────────────────────────── -->
-    <div class="mx-auto mb-8 rounded-2xl overflow-hidden shadow-xl"
-        style="margin-left:270px; margin-right:20px; margin-bottom:40px;">
 
-        <!-- Card Header -->
-        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center gap-3">
-            <span class="text-2xl">🏥</span>
-            <div>
-                <h5 class="text-white text-xl font-bold tracking-wide">Add Health Entry</h5>
-                <p class="text-blue-100 text-sm">Log your daily health metrics below</p>
-            </div>
-        </div>
-
-        <!-- Card Body -->
-        <div class="bg-white px-6 py-6">
-            <form method="POST" action="/dashboard">
-
-                <!-- Row 1: Steps | Heart Rate | Sleep -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-
-                    <div class="flex flex-col gap-1">
-                        <label class="text-sm font-semibold text-gray-600">🚶 Steps</label>
-                        <input type="number" name="steps" placeholder="e.g. 8000" required
-                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-800 placeholder-gray-400 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
-                    </div>
-
-                    <div class="flex flex-col gap-1">
-                        <label class="text-sm font-semibold text-gray-600">❤️ Heart Rate</label>
-                        <input type="number" name="heart_rate" placeholder="e.g. 72 bpm" required
-                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-800 placeholder-gray-400 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent transition">
-                    </div>
-
-                    <div class="flex flex-col gap-1">
-                        <label class="text-sm font-semibold text-gray-600">😴 Sleep (hours)</label>
-                        <input type="number" step="0.1" name="sleep_hours" placeholder="e.g. 7.5" required
-                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-800 placeholder-gray-400 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition">
-                    </div>
-
-                </div>
-
-                <!-- Row 2: Weight | Blood Pressure -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-
-                    <div class="flex flex-col gap-1">
-                        <label class="text-sm font-semibold text-gray-600">⚖️ Weight (kg)</label>
-                        <input type="number" step="0.1" name="weight" placeholder="e.g. 70.5" required
-                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-800 placeholder-gray-400 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent transition">
-                    </div>
-
-                    <div class="flex flex-col gap-1">
-                        <label class="text-sm font-semibold text-gray-600">🩸 Blood Pressure</label>
-                        <input type="text" name="blood_pressure" placeholder="e.g. 120/80" required
-                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-800 placeholder-gray-400 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent transition">
-                    </div>
-
-                </div>
-
-                <!-- Submit Button -->
-                <button type="submit"
-                    class="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm tracking-wider shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
-                    ➕ Add Health Entry
-                </button>
-
-            </form>
-        </div>
-
-    </div>
 
     <!-- ── Bootstrap JS (for alert dismiss) ─────────────────────────────────── -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- ── Chart.js Initialisation ──────────────────────────────────────────── -->
+    <!-- ── Chart.js + Annotation Plugin ────────────────────────────────────── -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+
     <script>
         // ── Shared data injected from Flask (Jinja2) ──────────────────────────
-        const LABELS = {{ timestamps      | tojson }};
-        const STEPS = {{ steps_data      | tojson }};
+        const LABELS     = {{ timestamps      | tojson }};
+        const STEPS      = {{ steps_data      | tojson }};
         const HEART_RATE = {{ heart_rate_data | tojson }};
-        const SLEEP = {{ sleep_data      | tojson }};
-        const WEIGHT = {{ weight_data     | tojson }};
+        const SLEEP      = {{ sleep_data      | tojson }};
+        const WEIGHT     = {{ weight_data     | tojson }};
 
-        // ── Helper: build a gradient fill ────────────────────────────────────
-        function makeGradient(ctx, color1, color2) {
-            const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+        // ── Helper: vertical gradient fill ───────────────────────────────────
+        function makeGradient(ctx, color1, color2, height) {
+            const gradient = ctx.createLinearGradient(0, 0, 0, height || 220);
             gradient.addColorStop(0, color1);
             gradient.addColorStop(1, color2);
             return gradient;
         }
 
-        // ── Shared chart defaults ─────────────────────────────────────────────
-        Chart.defaults.font.family = "'Segoe UI', sans-serif";
-        Chart.defaults.font.size = 12;
+        // ── Helper: per-point dynamic colour based on thresholds ─────────────
+        // thresholds = { green: max for green, yellow: max for yellow (above = red) }
+        function pointColors(data, thresholds) {
+            return data.map(v => {
+                if (v === null || v === undefined) return "#94a3b8";
+                if (v <= thresholds.green)  return "#22c55e";  // safe   – green
+                if (v <= thresholds.yellow) return "#f59e0b";  // caution– amber
+                return "#ef4444";                               // danger – red
+            });
+        }
 
-        const commonOptions = {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { grid: { display: false }, ticks: { maxTicksLimit: 6 } },
-                y: { grid: { color: "rgba(0,0,0,0.05)" }, beginAtZero: false }
-            },
-            elements: { line: { tension: 0.4 }, point: { radius: 4, hoverRadius: 7 } }
+        // ── Helper: like pointColors but inverted (higher = safer) ───────────
+        function pointColorsInverse(data, thresholds) {
+            return data.map(v => {
+                if (v === null || v === undefined) return "#94a3b8";
+                if (v >= thresholds.green)  return "#22c55e";
+                if (v >= thresholds.yellow) return "#f59e0b";
+                return "#ef4444";
+            });
+        }
+
+        // ── Helper: emphasise the last data point ─────────────────────────────
+        function pointRadii(dataLen, normalR, lastR) {
+            return Array.from({ length: dataLen }, (_, i) =>
+                i === dataLen - 1 ? lastR : normalR
+            );
+        }
+
+        // ── Helper: threshold annotation line ────────────────────────────────
+        function thresholdLine(yVal, label, color) {
+            return {
+                type: "line",
+                yMin: yVal, yMax: yVal,
+                borderColor: color || "rgba(239,68,68,0.75)",
+                borderWidth: 2,
+                borderDash: [6, 4],
+                label: {
+                    content: label,
+                    display: true,
+                    position: "end",
+                    backgroundColor: color || "rgba(239,68,68,0.85)",
+                    color: "#fff",
+                    font: { size: 10, weight: "bold" },
+                    padding: { x: 6, y: 3 },
+                    borderRadius: 4
+                }
+            };
+        }
+
+        // ── Global chart defaults ─────────────────────────────────────────────
+        Chart.defaults.font.family = "'Segoe UI', sans-serif";
+        Chart.defaults.font.size   = 12;
+
+        // ── Smooth entrance animation (shared) ───────────────────────────────
+        const smoothAnimation = {
+            duration: 900,
+            easing: "easeInOutCubic",
+            delay(ctx) {
+                // stagger each point slightly for a wave effect
+                return ctx.type === "data" ? ctx.dataIndex * 40 : 0;
+            }
         };
 
-        // ── 1. Steps Chart ────────────────────────────────────────────────────
-        if (document.getElementById("stepsChart")) {
+        // ── Shared tooltip formatter factory ─────────────────────────────────
+        function makeTooltip(metricName, unit) {
+            return {
+                callbacks: {
+                    label(ctx) {
+                        const val = ctx.parsed.y;
+                        return ` ${metricName}: ${val}${unit ? " " + unit : ""}`;
+                    }
+                },
+                backgroundColor: "rgba(15,23,42,0.85)",
+                titleColor: "#94a3b8",
+                bodyColor: "#f1f5f9",
+                borderColor: "rgba(255,255,255,0.1)",
+                borderWidth: 1,
+                padding: 10,
+                cornerRadius: 8,
+                displayColors: false
+            };
+        }
+
+        // ── Shared scale defaults ─────────────────────────────────────────────
+        const baseScales = {
+            x: { grid: { display: false }, ticks: { maxTicksLimit: 6 } },
+            y: { grid: { color: "rgba(0,0,0,0.05)" }, beginAtZero: false }
+        };
+
+        // ═════════════════════════════════════════════════════════════════════
+        // 1. STEPS CHART  (goal: ≥ 8 000 steps/day)
+        //    Colour logic: ≥ 8 000 green | 5 000-7 999 yellow | < 5 000 red
+        //    Threshold line: 8 000 steps (recommended daily)
+        // ═════════════════════════════════════════════════════════════════════
+        if (document.getElementById("stepsChart") && STEPS.length) {
             const ctx1 = document.getElementById("stepsChart").getContext("2d");
+            const stepColors = STEPS.map(v => {
+                if (v >= 8000)  return "#22c55e";
+                if (v >= 5000)  return "#f59e0b";
+                return "#ef4444";
+            });
+
             new Chart(ctx1, {
                 type: "line",
                 data: {
@@ -352,16 +448,38 @@
                         borderColor: "#4361ee",
                         backgroundColor: makeGradient(ctx1, "rgba(67,97,238,0.3)", "rgba(67,97,238,0)"),
                         fill: true,
-                        pointBackgroundColor: "#4361ee"
+                        tension: 0.4,
+                        pointBackgroundColor: stepColors,
+                        pointBorderColor: "#fff",
+                        pointBorderWidth: 2,
+                        pointRadius: pointRadii(STEPS.length, 4, 9),
+                        pointHoverRadius: 10
                     }]
                 },
-                options: { ...commonOptions }
+                options: {
+                    responsive: true,
+                    animation: smoothAnimation,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: makeTooltip("Steps", "steps"),
+                        annotation: { annotations: {
+                            goalLine: thresholdLine(8000, "Goal: 8 000", "rgba(34,197,94,0.85)")
+                        }}
+                    },
+                    scales: baseScales
+                }
             });
         }
 
-        // ── 2. Heart Rate Chart ───────────────────────────────────────────────
-        if (document.getElementById("heartChart")) {
+        // ═════════════════════════════════════════════════════════════════════
+        // 2. HEART RATE CHART
+        //    Normal: 60-100 bpm  | Elevated: 100-120  | High: > 120
+        //    Threshold line: 100 bpm (upper normal)
+        // ═════════════════════════════════════════════════════════════════════
+        if (document.getElementById("heartChart") && HEART_RATE.length) {
             const ctx2 = document.getElementById("heartChart").getContext("2d");
+            const hrColors = pointColors(HEART_RATE, { green: 100, yellow: 120 });
+
             new Chart(ctx2, {
                 type: "line",
                 data: {
@@ -372,16 +490,43 @@
                         borderColor: "#f72585",
                         backgroundColor: makeGradient(ctx2, "rgba(247,37,133,0.25)", "rgba(247,37,133,0)"),
                         fill: true,
-                        pointBackgroundColor: "#f72585"
+                        tension: 0.4,
+                        pointBackgroundColor: hrColors,
+                        pointBorderColor: "#fff",
+                        pointBorderWidth: 2,
+                        pointRadius: pointRadii(HEART_RATE.length, 4, 9),
+                        pointHoverRadius: 10
                     }]
                 },
-                options: { ...commonOptions }
+                options: {
+                    responsive: true,
+                    animation: smoothAnimation,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: makeTooltip("Heart Rate", "bpm"),
+                        annotation: { annotations: {
+                            normalCeil: thresholdLine(100, "Normal ceiling: 100 bpm"),
+                            highLine:   thresholdLine(120, "High: 120 bpm", "rgba(239,68,68,0.55)")
+                        }}
+                    },
+                    scales: baseScales
+                }
             });
         }
 
-        // ── 3. Sleep Chart ─────────────────────────────────────────────────────
-        if (document.getElementById("sleepChart")) {
+        // ═════════════════════════════════════════════════════════════════════
+        // 3. SLEEP CHART  (recommended 7-9 hours)
+        //    Colour: ≥ 7 h green | 5-6.9 h yellow | < 5 h red
+        //    Threshold lines: 7 h (minimum) and 9 h (maximum)
+        // ═════════════════════════════════════════════════════════════════════
+        if (document.getElementById("sleepChart") && SLEEP.length) {
             const ctx3 = document.getElementById("sleepChart").getContext("2d");
+            const sleepColors = SLEEP.map(v => {
+                if (v >= 7)  return "rgba(34,197,94,0.75)";
+                if (v >= 5)  return "rgba(245,158,11,0.75)";
+                return "rgba(239,68,68,0.75)";
+            });
+
             new Chart(ctx3, {
                 type: "bar",
                 data: {
@@ -389,13 +534,22 @@
                     datasets: [{
                         label: "Sleep (hrs)",
                         data: SLEEP,
-                        backgroundColor: makeGradient(ctx3, "rgba(114,9,183,0.7)", "rgba(114,9,183,0.2)"),
+                        backgroundColor: sleepColors,
                         borderRadius: 8,
                         borderSkipped: false
                     }]
                 },
                 options: {
-                    ...commonOptions,
+                    responsive: true,
+                    animation: { duration: 900, easing: "easeInOutCubic" },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: makeTooltip("Sleep", "hrs"),
+                        annotation: { annotations: {
+                            minSleep: thresholdLine(7, "Min: 7 h", "rgba(34,197,94,0.85)"),
+                            maxSleep: thresholdLine(9, "Max: 9 h", "rgba(245,158,11,0.85)")
+                        }}
+                    },
                     scales: {
                         x: { grid: { display: false }, ticks: { maxTicksLimit: 6 } },
                         y: { grid: { color: "rgba(0,0,0,0.05)" }, beginAtZero: true, max: 12 }
@@ -404,9 +558,14 @@
             });
         }
 
-        // ── 4. Weight Chart ───────────────────────────────────────────────────
-        if (document.getElementById("weightChart")) {
+        // ═════════════════════════════════════════════════════════════════════
+        // 4. WEIGHT CHART
+        //    No fixed threshold – highlight latest point only.
+        //    Dynamic color: changes based on trend (simple – constant teal).
+        // ═════════════════════════════════════════════════════════════════════
+        if (document.getElementById("weightChart") && WEIGHT.length) {
             const ctx4 = document.getElementById("weightChart").getContext("2d");
+
             new Chart(ctx4, {
                 type: "line",
                 data: {
@@ -417,10 +576,26 @@
                         borderColor: "#2ec4b6",
                         backgroundColor: makeGradient(ctx4, "rgba(46,196,182,0.3)", "rgba(46,196,182,0)"),
                         fill: true,
-                        pointBackgroundColor: "#2ec4b6"
+                        tension: 0.4,
+                        pointBackgroundColor: WEIGHT.map((_, i) =>
+                            i === WEIGHT.length - 1 ? "#f59e0b" : "#2ec4b6"
+                        ),
+                        pointBorderColor: "#fff",
+                        pointBorderWidth: 2,
+                        pointRadius: pointRadii(WEIGHT.length, 4, 9),
+                        pointHoverRadius: 10
                     }]
                 },
-                options: { ...commonOptions }
+                options: {
+                    responsive: true,
+                    animation: smoothAnimation,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: makeTooltip("Weight", "kg")
+                        // No fixed threshold for weight – individual baseline varies
+                    },
+                    scales: baseScales
+                }
             });
         }
 
@@ -431,11 +606,8 @@
                 .then(d => {
                     if (d.error) return;   // not logged in
                     console.log("Chart data refreshed:", d.labels.length, "points");
-                    // In a more advanced setup: update Chart instances with d.labels, d.steps etc.
-                    // For now, a simple page reload keeps things clean:
-                    // window.location.reload();
                 })
-                .catch(() => { });
+                .catch(() => {});
         }
         setInterval(refreshCharts, 30000);
     </script>

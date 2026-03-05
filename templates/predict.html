@@ -125,6 +125,38 @@
                 margin-left: 0;
             }
         }
+
+        /* ── Risk level badges ──────────────────────────────────────── */
+        .risk-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            padding: 3px 10px;
+            border-radius: 99px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .risk-low {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
+        }
+
+        .risk-moderate {
+            background: #fef9c3;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+
+        .risk-high {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+        }
     </style>
 </head>
 
@@ -224,6 +256,21 @@
                         </div>
                     </div>
                     <div style="max-width:65%;">
+
+                        {% if msg.risk == 'LOW' %}
+                        <span class="risk-badge risk-low">
+                            ✅ LOW RISK
+                        </span><br>
+                        {% elif msg.risk == 'MODERATE' %}
+                        <span class="risk-badge risk-moderate">
+                            ⚠️ MODERATE RISK
+                        </span><br>
+                        {% elif msg.risk == 'HIGH' %}
+                        <span class="risk-badge risk-high">
+                            🔴 HIGH RISK
+                        </span><br>
+                        {% endif %}
+
                         <small class="fw-semibold d-block mb-1 px-1"
                             style="color:#2ec4b6;font-size:11px;letter-spacing:0.3px;">HEALTH AI</small>
                         <div class="px-3 py-2 shadow-sm"
