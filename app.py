@@ -324,7 +324,7 @@ def ask_ai(message):
     one of:  [RISK: LOW]  [RISK: MODERATE]  [RISK: HIGH]
     so that we can parse it out on the Python side.
     """
-    client = genai.Client(api_key="API KEY")
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
     prompt = (
         "You are a medical assistant. "
@@ -613,6 +613,6 @@ def logout():
 
 if __name__ == "__main__":
     init_db()
-    app.run(debug=True)
+    app.run( host = '[0.0.0.0]',debug=True)
 
     
