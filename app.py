@@ -337,13 +337,17 @@ def ask_ai(message):
     )
 
 
-    response = client.models.generate_content(
-        model="gemini-3-flash-preview",
-        contents=prompt,
-    )
+    try:
+        response = client.models.generate_content(
+            model="gemini-3-flash-preview",
+            contents=prompt
+        )
 
-    return response.text
+        return response.text
 
+    except Exception as e:
+        print("Gemini error:", e)
+        return "[RISK: LOW]\nAI service temporarily unavailable."
 
 # ── Helper: extract risk level from AI reply ──────────────────────────────────
 _RISK_RE = re.compile(r"\[RISK:\s*(LOW|MODERATE|HIGH)\]", re.IGNORECASE)
