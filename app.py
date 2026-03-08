@@ -142,6 +142,7 @@ def login():
 
             # 🔥 YAHI SESSION SET HOTI HAI
             # Ab server ko yaad rahega kaunsa user login hai
+            session.clear()   # 🔥 IMPORTANT FIX
             session["user_email"] = user[1]
             # print("USER:", user)
             # print("PASSWORD MATCH:", check_password_hash(user[2], password) if user else "NO USER")
@@ -325,7 +326,7 @@ def ask_ai(message):
     one of:  [RISK: LOW]  [RISK: MODERATE]  [RISK: HIGH]
     so that we can parse it out on the Python side.
     """
-    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+    client = genai.Client(api_key=os.getenv("AIzaSyCdCitZ1ekc7T_TAFyBxYgp39EbfGuakao"))
 
     prompt = (
         "You are a medical assistant. "
@@ -379,50 +380,69 @@ def predict():
     if "user_email" not in session:
         return redirect(url_for("login"))
 
-    if "chat" not in session:
-        session["chat"] = []
+    email = session.get("user_email")
 
+    # Handle new message
     if request.method == "POST":
         message = request.form.get("message")
 
         if message and message.strip():
-            # 1. Add the user message to session
-            session["chat"].append({
-                "role": "user",
-                "text": message,
-                "risk": None
-            })
 
-            # 2. Call AI and parse the risk tag + clean text
-            raw_reply  = ask_ai(message)
+            # Call AI
+            raw_reply = ask_ai(message)
             risk_level, clean_reply = parse_risk(raw_reply)
 
-            # 3. Add AI reply to session with risk metadata
-            session["chat"].append({
-                "role": "ai",
-                "text": clean_reply,
-                "risk": risk_level        # 'LOW' | 'MODERATE' | 'HIGH' | None
-            })
-            session.modified = True       # tell Flask the session changed
-
-            # 4. Persist to database (store raw reply so we can keep the tag for history!)
             try:
                 conn = get_db()
                 cursor = conn.cursor()
+
+                # Save user message
                 cursor.execute(
                     "INSERT INTO chat_history (user, role, message) VALUES (?, ?, ?)",
-                    (session.get("user_email"), "user", message)
+                    (email, "user", message)
                 )
+
+                # Save AI reply
                 cursor.execute(
                     "INSERT INTO chat_history (user, role, message) VALUES (?, ?, ?)",
-                    (session.get("user_email"), "ai", raw_reply)
+                    (email, "ai", raw_reply)
                 )
+
                 conn.commit()
                 conn.close()
-            except Exception:
-                pass   # DB errors should not break the chat UX
 
-    return render_template("predict.html", chat=session["chat"])
+            except Exception:
+                pass
+
+    # Load chat history for this user
+    chat = []
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT role, message FROM chat_history WHERE user = ? ORDER BY created_at",
+            (email,)
+        )
+
+        rows = cursor.fetchall()
+
+        for role, message in rows:
+
+            risk_level, clean_message = parse_risk(message)
+
+            chat.append({
+                "role": role,
+                "text": clean_message,
+                "risk": risk_level
+            })
+
+        conn.close()
+
+    except Exception:
+        pass
+
+    return render_template("predict.html", chat=chat)
 
 
 
@@ -618,6 +638,6 @@ def logout():
 
 if __name__ == "__main__":
     
-    app.run( host = '[0.0.0.0]',debug=True)
+    app.run(debug=True)
 
     
