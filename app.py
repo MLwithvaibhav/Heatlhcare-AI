@@ -326,7 +326,7 @@ def ask_ai(message):
     one of:  [RISK: LOW]  [RISK: MODERATE]  [RISK: HIGH]
     so that we can parse it out on the Python side.
     """
-    client = genai.Client(api_key=os.getenv("AIzaSyCdCitZ1ekc7T_TAFyBxYgp39EbfGuakao"))
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
     prompt = (
         "You are a medical assistant. "
